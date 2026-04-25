@@ -3,21 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Matt's Power Equipment Repair | Coon Rapids, MN</title>
-  <meta name="description" content="Expert small engine repair in Coon Rapids, MN. Gravely, Toro, Briggs &amp; Stratton. $50/hr, free estimates, pickup &amp; delivery.">
+  <title>Matt's Power Equipment Repair | Small Engine Repair in Coon Rapids, MN</title>
+  <meta name="description" content="Expert small engine repair in Coon Rapids, MN. Fast, honest, and affordable repair for lawn mowers, snow blowers, trimmers, and more. Free estimates.">
+  <meta name="keywords" content="small engine repair, lawn mower repair, snow blower repair, engine rebuild, Coon Rapids, MN">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Serif+Display&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  
+  <!-- LocalBusiness Schema for SEO -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Matt's Power Equipment Repair",
+    "image": "https://mattspowerequipment.com/images/hero.png",
+    "@id": "",
+    "url": "https://mattspowerequipment.com",
+    "telephone": "+16125551234",
+    "priceRange": "$$",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "",
+      "addressLocality": "Coon Rapids",
+      "addressRegion": "MN",
+      "postalCode": "55433",
+      "addressCountry": "US"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 45.1732,
+      "longitude": -93.3030
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "opens": "08:00",
+        "closes": "18:00"
+      },
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": "Saturday",
+        "opens": "09:00",
+        "closes": "15:00"
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
 
 <nav>
   <div class="wrap nav-inner">
-    <a href="#" class="logo">Matt's Power Equipment</a>
-    <button class="menu-btn" aria-label="Menu">☰</button>
+    <a href="#" class="logo">
+      <img src="images/logo.png" alt="Matt's Power Equipment Logo" class="logo-img">
+      <span class="logo-text">Matt's Power Equipment</span>
+    </a>
+    <button class="menu-btn" aria-label="Toggle Menu">☰</button>
     <div class="nav-links">
       <a href="#services">Services</a>
+      <a href="#how">How It Works</a>
       <a href="#pricing">Pricing</a>
       <a href="#about">About</a>
       <a href="#faq">FAQ</a>
@@ -26,245 +72,360 @@
   </div>
 </nav>
 
-<!-- Hero -->
-<header id="hero">
-  <div class="wrap hero-inner">
-    <p class="eyebrow">Small Engine Repair — Coon Rapids, MN</p>
-    <h1>Your equipment,<br>running like&nbsp;new.</h1>
-    <p class="hero-p">Lawn mowers, snow blowers, trimmers, chainsaws — if it has a small engine, I fix it. Honest work, fair prices, fast turnaround.</p>
-    <div class="hero-actions">
-      <a href="#contact" class="btn">Get a Free Estimate</a>
-      <a href="tel:+16125551234" class="btn btn-ghost">Call (612) 555-1234</a>
-    </div>
-  </div>
-  <div class="hero-img">
-    <img src="https://images.unsplash.com/photo-1592916185913-f4b68100c2c1?w=900&h=600&fit=crop" alt="Riding mower on a green lawn">
-  </div>
-</header>
-
-<!-- Trust strip -->
-<section id="trust">
-  <div class="wrap trust-inner">
-    <span>✓ Free Estimates</span>
-    <span>✓ $50 / Hour</span>
-    <span>✓ Same-Week Turnaround</span>
-    <span>✓ Pickup &amp; Delivery</span>
-  </div>
-</section>
-
-<!-- Services -->
-<section id="services">
-  <div class="wrap">
-    <p class="eyebrow">What We Fix</p>
-    <h2>If it has a small engine,<br>we can fix&nbsp;it.</h2>
-
-    <div class="service-row">
-      <div class="service-img"><img src="https://images.unsplash.com/photo-1592916185913-f4b68100c2c1?w=560&h=380&fit=crop" alt="Lawn mower on grass" loading="lazy"></div>
-      <div class="service-text">
-        <h3>Lawn Mower Repair</h3>
-        <p>Push mowers, self-propelled, riding mowers, and zero-turns. Blade sharpening, tune-ups, carburetor rebuilds, belt replacement, and complete engine overhauls. Won't start? We'll figure out why.</p>
+<main>
+  <!-- Hero -->
+  <header id="hero">
+    <div class="wrap hero-inner">
+      <div class="hero-content fade-up">
+        <span class="eyebrow">Small Engine Repair — Coon Rapids, MN</span>
+        <h1>Your equipment,<br>running like new.</h1>
+        <p class="hero-p">Lawn mowers, snow blowers, trimmers, chainsaws — if it has a small engine, I fix it. Honest work, fair prices, and fast turnaround in the North Metro.</p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn btn-primary">Get a Free Estimate</a>
+          <a href="tel:+16125551234" class="btn btn-secondary">Call (612) 555-1234</a>
+        </div>
+      </div>
+      <div class="hero-img fade-up" style="transition-delay: 0.2s">
+        <img src="images/hero.png" alt="Pristine riding lawn mower on a lush green lawn" fetchpriority="high">
       </div>
     </div>
+  </header>
 
-    <div class="service-row reverse">
-      <div class="service-img"><img src="https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=560&h=380&fit=crop" alt="Snow covered yard" loading="lazy"></div>
-      <div class="service-text">
-        <h3>Snow Blower Repair</h3>
-        <p>Single-stage and two-stage snow blowers. Auger and impeller repair, shear pins, carburetor cleaning, fuel system service, and pre-season tune-ups. Be ready before the first storm.</p>
+  <!-- Trust strip -->
+  <section id="trust">
+    <div class="wrap trust-inner">
+      <div class="trust-item"><span class="trust-icon">✓</span> Free Estimates</div>
+      <div class="trust-item"><span class="trust-icon">✓</span> $50 / Hour Labor</div>
+      <div class="trust-item"><span class="trust-icon">✓</span> Fast Turnaround</div>
+      <div class="trust-item"><span class="trust-icon">✓</span> Pickup & Delivery Available</div>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section id="services">
+    <div class="wrap">
+      <div class="services-header fade-up">
+        <span class="eyebrow">What We Fix</span>
+        <h2>If it has a small engine, we can fix it.</h2>
+        <p>From simple tune-ups to complete rebuilds, I have the experience and tools to get your equipment back to peak performance.</p>
+      </div>
+
+      <div class="service-row fade-up">
+        <div class="service-img"><img src="images/mower.png" alt="Mechanic hands adjusting a push lawn mower" loading="lazy"></div>
+        <div class="service-text">
+          <h3>Lawn Mower Repair</h3>
+          <p>Push mowers, self-propelled, riding mowers, and zero-turns. I handle blade sharpening, tune-ups, carburetor rebuilds, belt replacement, and complete engine overhauls. If it won't start or runs rough, we'll figure out why and fix it right.</p>
+        </div>
+      </div>
+
+      <div class="service-row reverse fade-up">
+        <div class="service-img"><img src="images/snow.png" alt="Red snow blower sitting on a snowy driveway" loading="lazy"></div>
+        <div class="service-text">
+          <h3>Snow Blower Repair</h3>
+          <p>Expert service for single-stage and two-stage snow blowers. Auger and impeller repair, shear pins, carburetor cleaning, and fuel system service. Don't wait until the first blizzard — schedule a pre-season tune-up today.</p>
+        </div>
+      </div>
+
+      <div class="service-row fade-up">
+        <div class="service-img"><img src="images/engine.png" alt="Disassembled small engine parts on a workbench" loading="lazy"></div>
+        <div class="service-text">
+          <h3>Engine Rebuilds</h3>
+          <p>Complete teardown and rebuild services. I replace piston rings, gaskets, seals, and valves, and perform crankshaft work. If your engine is smoking, knocking, or has lost compression but the equipment is still good, a rebuild can save you hundreds over buying new.</p>
+        </div>
+      </div>
+
+      <div class="service-row reverse fade-up">
+        <div class="service-img"><img src="images/chainsaw.png" alt="Chainsaw resting on a freshly cut log in the forest" loading="lazy"></div>
+        <div class="service-text">
+          <h3>Trimmers, Chainsaws & More</h3>
+          <p>Service for all 2-stroke and 4-stroke handheld equipment including string trimmers, chainsaws, leaf blowers, edgers, pressure washers, and generators. From chain sharpening and bar dressing to fuel line replacement and ignition repair.</p>
+        </div>
+      </div>
+
+      <div class="brands fade-up">
+        <p>Brands We Expertly Service</p>
+        <div class="brands-list">
+          <span>Gravely</span><span>Toro</span><span>Briggs & Stratton</span><span>Kohler</span><span>Honda</span>
+          <span>Husqvarna</span><span>Craftsman</span><span>John Deere</span><span>Ariens</span><span>Stihl</span>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="service-row">
-      <div class="service-img"><img src="https://images.unsplash.com/photo-1530124566582-a45a7e3f2809?w=560&h=380&fit=crop" alt="Mechanic tools" loading="lazy"></div>
-      <div class="service-text">
-        <h3>Engine Rebuilds</h3>
-        <p>Complete teardown and rebuild on Briggs &amp; Stratton, Kohler, Honda, and more. Piston rings, gaskets, valves, crankshaft work. If it's worth saving, I'll bring it back to life.</p>
+  <!-- How it works -->
+  <section id="how">
+    <div class="wrap fade-up">
+      <span class="eyebrow">The Process</span>
+      <h2>Four simple steps to running like new.</h2>
+      
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3>Call or Text</h3>
+          <p>Tell me what's going on with your equipment. No pressure, no obligation.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3>Free Diagnosis</h3>
+          <p>Drop it off or I'll pick it up. You get an honest, written quote before any work begins.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3>Expert Repair</h3>
+          <p>I fix it right the first time with quality parts. Most jobs are done within the same week.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <h3>Ready to Work</h3>
+          <p>Tested, cleaned, and ready for the season. Pick it up or have it delivered directly to your home.</p>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="service-row reverse">
-      <div class="service-img"><img src="https://images.unsplash.com/photo-1558618666-fcd25c85e82e?w=560&h=380&fit=crop" alt="Chainsaw" loading="lazy"></div>
-      <div class="service-text">
-        <h3>Trimmers, Chainsaws &amp; More</h3>
-        <p>String trimmers, chainsaws, leaf blowers, edgers, pressure washers, generators. All 2-stroke and 4-stroke engines. Chain sharpening, fuel lines, ignition — you name it.</p>
+  <!-- Seasonal Special -->
+  <section id="seasonal">
+    <div class="wrap">
+      <div class="seasonal-inner fade-up">
+        <div class="seasonal-content">
+          <span class="eyebrow light">Spring Special</span>
+          <h2>$89 Spring Tune-Up</h2>
+          <p>Get ready for mowing season! Includes oil change, new spark plug, air filter replacement, and blade sharpening — everything your push mower needs to start strong and cut clean. (Riding mowers slightly higher based on size).</p>
+          <a href="#contact" class="btn btn-primary">Book Your Tune-Up</a>
+        </div>
+        <div class="seasonal-img">
+          <img src="images/spring.png" alt="Beautiful green spring lawn with a push mower handle in the foreground" loading="lazy">
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="brands">
-      <p>Brands we service</p>
-      <span>Gravely</span><span>Toro</span><span>Briggs &amp; Stratton</span><span>Kohler</span><span>Honda</span><span>Husqvarna</span><span>Craftsman</span><span>John Deere</span><span>Ariens</span><span>Stihl</span>
+  <!-- Pricing -->
+  <section id="pricing">
+    <div class="wrap">
+      <span class="eyebrow">Pricing</span>
+      <h2 class="fade-up">Honest pricing. No surprises.</h2>
+      
+      <div class="pricing-cols fade-up">
+        <div class="price-card">
+          <h3>Labor Rate</h3>
+          <p class="big-price">$50<span>/hr</span></p>
+          <p>Quality repair with OEM or premium aftermarket parts. Parts are billed separately at cost. You approve everything before I start.</p>
+        </div>
+        <div class="price-card">
+          <h3>Diagnosis & Estimates</h3>
+          <p class="big-price free">Free</p>
+          <p>No obligation. I'll diagnose the problem and give you a quote. If it's not worth fixing, I'll tell you honestly.</p>
+        </div>
+        <div class="price-card">
+          <h3>Pickup & Delivery</h3>
+          <p class="big-price">$2<span>/mile</span></p>
+          <p>Round trip rate. I load and unload. Perfect for riding mowers, heavy generators, and snow blowers you can't haul.</p>
+        </div>
+      </div>
+
+      <div class="estimate-table fade-up">
+        <h3>Common Repair Ballparks</h3>
+        <dl>
+          <div><dt>Basic tune-up (Push Mower)</dt><dd>$75 – $120</dd></div>
+          <div><dt>Carburetor clean & rebuild</dt><dd>$80 – $150</dd></div>
+          <div><dt>Blade sharpening & balancing</dt><dd>$15 – $25</dd></div>
+          <div><dt>Drive belt replacement</dt><dd>$60 – $120</dd></div>
+          <div><dt>Recoil starter repair</dt><dd>$50 – $100</dd></div>
+          <div><dt>Full engine overhaul</dt><dd>$200 – $500+</dd></div>
+        </dl>
+        <p class="fine">Labor included. Parts additional. Exact pricing provided after free diagnosis.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- About & Reviews -->
+  <div class="about-reviews-wrapper">
+    <div class="wrap">
+      <div id="about" class="about-inner fade-up">
+        <div class="about-photo">
+          <img src="images/matt.jpg" alt="Matt — owner and operator of Matt's Power Equipment" loading="lazy">
+        </div>
+        <div>
+          <span class="eyebrow">About Matt</span>
+          <h2>Meet your mechanic.</h2>
+          <p>I run Matt's Power Equipment Repair locally out of Coon Rapids, Minnesota. This isn't a big corporate dealership shop — it's just me, my tools, and a commitment to doing honest, meticulous work at a fair price.</p>
+          <p>I've been tearing apart and rebuilding small engines for years. Whether it's a Briggs & Stratton that won't fire, a Toro that's lost compression, or a Gravely zero-turn with hydro issues — I've seen it, diagnosed it, and fixed it.</p>
+          <p>When you call, you talk directly to the person fixing your equipment. No runaround, no upselling, no mystery shop fees. Just good work from a neighbor you can trust.</p>
+        </div>
+      </div>
+
+      <div id="reviews">
+        <span class="eyebrow">Customer Reviews</span>
+        <h2 class="fade-up">What neighbors are saying.</h2>
+        <div class="reviews fade-up">
+          <div class="review-card">
+            <p>"My riding mower wouldn't start after sitting all winter. Matt had it running in two days and the price was way less than I expected. Honest guy, great work."</p>
+            <cite>Dave R. — Coon Rapids</cite>
+          </div>
+          <div class="review-card">
+            <p>"I called three shops before finding Matt. He was the only one who could get to my snow blower before the next storm. Fixed it same day. Lifesaver!"</p>
+            <cite>Sarah K. — Blaine</cite>
+          </div>
+          <div class="review-card">
+            <p>"Matt picked up my Gravely zero-turn, diagnosed a bad carburetor, gave me a fair quote, and had it back to me in 4 days. Will absolutely use him again."</p>
+            <cite>Tom H. — Andover</cite>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</section>
 
-<!-- How it works -->
-<section id="how">
-  <div class="wrap">
-    <p class="eyebrow">How It Works</p>
-    <h2>Four simple steps.</h2>
-    <ol class="steps">
-      <li><strong>Call or text.</strong> Tell me what's going on — no pressure, no obligation.</li>
-      <li><strong>Free diagnosis.</strong> Drop it off or I'll pick it up. You get an honest quote before any work starts.</li>
-      <li><strong>Expert repair.</strong> I fix it right the first time with quality parts. Most jobs done same week.</li>
-      <li><strong>Pick up &amp; go.</strong> Tested, cleaned, and ready to work. Delivery available too.</li>
-    </ol>
-  </div>
-</section>
+  <!-- Service Area -->
+  <section id="area">
+    <div class="wrap fade-up">
+      <span class="eyebrow">Service Area</span>
+      <h2>Serving the Northern Twin Cities.</h2>
+      <p>Based in Coon Rapids with convenient pickup & delivery throughout the North Metro.</p>
+      
+      <div class="area-tags">
+        <strong>Coon Rapids</strong><span>Blaine</span><span>Andover</span><span>Anoka</span><span>Ham Lake</span>
+        <span>Fridley</span><span>Spring Lake Park</span><span>Ramsey</span><span>Champlin</span><span>Brooklyn Park</span>
+        <span>Lino Lakes</span><span>East Bethel</span><span>Maple Grove</span><span>Elk River</span>
+      </div>
+      
+      <p class="fine" style="margin-top: 20px;">Don't see your city listed? Call or text anyway — we may still be able to help.</p>
+    </div>
+  </section>
 
-<!-- Pricing -->
-<section id="pricing">
-  <div class="wrap">
-    <p class="eyebrow">Pricing</p>
-    <h2>Honest pricing.<br>No surprises.</h2>
-    <div class="pricing-cols">
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="wrap fade-up">
+      <span class="eyebrow" style="display: block; text-align: center;">FAQ</span>
+      <h2>Common questions.</h2>
+      
+      <div class="faq-item">
+        <details>
+          <summary>How long does a typical repair take?</summary>
+          <p>Most standard repairs and diagnostics are completed in 3–5 business days. Minor services like tune-ups, oil changes, and blade sharpening are often finished same-day or next-day depending on the current schedule.</p>
+        </details>
+      </div>
+      <div class="faq-item">
+        <details>
+          <summary>Do I need an appointment?</summary>
+          <p>Please call or text first so I know you're coming and can ensure I'm at the shop, but my schedule is flexible. We'll find a drop-off time that works for you.</p>
+        </details>
+      </div>
+      <div class="faq-item">
+        <details>
+          <summary>What brands do you work on?</summary>
+          <p>I service all major brands including Gravely, Toro, Briggs & Stratton, Kohler, Honda, Husqvarna, Craftsman, John Deere, Ariens, Stihl, Echo, MTD, and many more.</p>
+        </details>
+      </div>
+      <div class="faq-item">
+        <details>
+          <summary>How does pickup & delivery work?</summary>
+          <p>I will come to your home with a truck and trailer, safely load your equipment, repair it at my shop, and deliver it back to you. The fee is simply $2.00 per mile round trip.</p>
+        </details>
+      </div>
+      <div class="faq-item">
+        <details>
+          <summary>Do you offer a warranty on your work?</summary>
+          <p>Yes, I provide a 30-day labor warranty. If the exact same issue returns within 30 days of the repair, I will fix it at no additional labor cost to you.</p>
+        </details>
+      </div>
+      <div class="faq-item">
+        <details>
+          <summary>Will you tell me if it's not worth fixing?</summary>
+          <p>Absolutely. Honesty is the foundation of my business. If the cost of parts and labor exceeds the value of the equipment, or if a replacement makes more financial sense, I will tell you upfront.</p>
+        </details>
+      </div>
+      <div class="faq-item">
+        <details>
+          <summary>What payment methods do you accept?</summary>
+          <p>I accept Cash, Check, Venmo, and Zelle. Payment is only due when the work is fully completed and you are completely satisfied with the result.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact">
+    <div class="wrap contact-inner fade-up">
       <div>
-        <h3>Labor</h3>
-        <p class="big-price">$50<span>/hr</span></p>
-        <p>Quality repair with OEM and aftermarket parts. Parts billed separately at cost. You approve everything before I start.</p>
+        <span class="eyebrow light">Contact Us</span>
+        <h2>Let's get it fixed.</h2>
+        <p>Call, text, or email for a free estimate or to schedule service. I pride myself on fast response times.</p>
       </div>
-      <div>
-        <h3>Estimates</h3>
-        <p class="big-price free">Free</p>
-        <p>No obligation. I'll diagnose the problem and give you a written quote. If it's not worth fixing, I'll tell you.</p>
+      
+      <div class="contact-card">
+        <a href="tel:+16125551234" class="contact-link">
+          <span class="icon">📞</span>
+          (612) 555-1234
+        </a>
+        <a href="mailto:matt@mattspowerequipment.com" class="contact-link">
+          <span class="icon">✉️</span>
+          matt@mattspowerequipment.com
+        </a>
+        
+        <div class="contact-details-text">
+          <p><span class="icon" style="font-size: 1.2rem;">📍</span> Coon Rapids, MN 55433 — By Appointment</p>
+          <p><span class="icon" style="font-size: 1.2rem;">🕒</span> Mon–Fri: 8am – 6pm <br> Sat: 9am – 3pm</p>
+          <p class="fine" style="margin-top: 24px; color: rgba(255,255,255,0.4);">* Placeholder info — pending update with Matt's direct contact details</p>
+        </div>
       </div>
-      <div>
-        <h3>Pickup &amp; Delivery</h3>
-        <p class="big-price">$2<span>/mile</span></p>
-        <p>Round trip. I load and unload. Perfect for riding mowers and heavy equipment you can't haul yourself.</p>
-      </div>
     </div>
-
-    <div class="estimate-table">
-      <h3>Common repair ballparks</h3>
-      <dl>
-        <div><dt>Basic tune-up</dt><dd>$75 – $120</dd></div>
-        <div><dt>Carburetor clean &amp; rebuild</dt><dd>$80 – $150</dd></div>
-        <div><dt>Blade sharpening</dt><dd>$15 – $25</dd></div>
-        <div><dt>Belt replacement</dt><dd>$60 – $120</dd></div>
-        <div><dt>Starter repair</dt><dd>$50 – $100</dd></div>
-        <div><dt>Full engine overhaul</dt><dd>$200 – $500+</dd></div>
-      </dl>
-      <p class="fine">Labor included. Parts additional. Exact pricing after free diagnosis.</p>
-    </div>
-  </div>
-</section>
-
-<!-- Seasonal -->
-<section id="seasonal">
-  <div class="wrap seasonal-inner">
-    <img src="https://images.unsplash.com/photo-1589923188651-268a9765e432?w=600&h=420&fit=crop" alt="Beautiful green lawn" loading="lazy">
-    <div>
-      <p class="eyebrow light">Spring Special</p>
-      <h2>$89 Spring Tune-Up</h2>
-      <p>Oil change, spark plug, air filter, blade sharpening — everything your push mower needs to start the season strong. Riding mowers slightly higher.</p>
-      <a href="#contact" class="btn">Book a Tune-Up</a>
-    </div>
-  </div>
-</section>
-
-<!-- About -->
-<section id="about">
-  <div class="wrap about-inner">
-    <div class="about-photo">
-      <img src="images/matt.jpg" alt="Matt — owner and operator" loading="lazy">
-    </div>
-    <div>
-      <p class="eyebrow">About</p>
-      <h2>Meet Matt.</h2>
-      <p>I run Matt's Power Equipment Repair out of Coon Rapids, Minnesota. This isn't a big corporate shop — it's just me, my tools, and a commitment to doing honest work at a fair price.</p>
-      <p>I've been tearing apart and rebuilding small engines for years. Briggs &amp; Stratton that won't fire, Toro that's lost compression, Gravely zero-turn with transmission issues — I've seen it, diagnosed it, and fixed it.</p>
-      <p>You talk directly to the person fixing your equipment. No runaround, no upselling, no mystery fees. Just good work.</p>
-    </div>
-  </div>
-</section>
-
-<!-- Testimonials -->
-<section id="reviews">
-  <div class="wrap">
-    <p class="eyebrow">Reviews</p>
-    <h2>What neighbors are saying.</h2>
-    <div class="reviews">
-      <blockquote>
-        <p>"My riding mower wouldn't start after sitting all winter. Matt had it running in two days and the price was way less than I expected. Honest guy, great work."</p>
-        <cite>— Dave R., Coon Rapids</cite>
-      </blockquote>
-      <blockquote>
-        <p>"I called three shops before finding Matt. He was the only one who could get to my snow blower before the next storm. Fixed it same day. Lifesaver!"</p>
-        <cite>— Sarah K., Blaine</cite>
-      </blockquote>
-      <blockquote>
-        <p>"Matt picked up my Gravely zero-turn, diagnosed a bad carburetor, gave me a fair quote, and had it back to me in 4 days. Will absolutely use him again."</p>
-        <cite>— Tom H., Andover</cite>
-      </blockquote>
-    </div>
-  </div>
-</section>
-
-<!-- Service Area -->
-<section id="area">
-  <div class="wrap area-inner">
-    <p class="eyebrow">Service Area</p>
-    <h2>Serving the northern Twin Cities.</h2>
-    <p>Based in Coon Rapids with pickup &amp; delivery throughout the area.</p>
-    <div class="area-tags">
-      <strong>Coon Rapids</strong><span>Blaine</span><span>Andover</span><span>Anoka</span><span>Ham Lake</span><span>Fridley</span><span>Spring Lake Park</span><span>Ramsey</span><span>Champlin</span><span>Brooklyn Park</span><span>Lino Lakes</span><span>East Bethel</span><span>Maple Grove</span><span>Elk River</span>
-    </div>
-    <p class="fine">Don't see your city? Call — we may still be able to help.</p>
-  </div>
-</section>
-
-<!-- FAQ -->
-<section id="faq">
-  <div class="wrap">
-    <p class="eyebrow">FAQ</p>
-    <h2>Common questions.</h2>
-    <details><summary>How long does a typical repair take?</summary><p>Most repairs are done in 3–5 business days. Tune-ups and blade sharpening are often same-day or next-day.</p></details>
-    <details><summary>Do I need an appointment?</summary><p>Call or text first so I know you're coming, but I'm flexible. We'll find a time that works.</p></details>
-    <details><summary>What brands do you work on?</summary><p>All major brands — Gravely, Toro, Briggs &amp; Stratton, Kohler, Honda, Husqvarna, Craftsman, John Deere, Ariens, Stihl, and more.</p></details>
-    <details><summary>How does pickup &amp; delivery work?</summary><p>I come to you with a truck and trailer, load your equipment, repair it at my shop, and deliver it back. $2.00/mile round trip.</p></details>
-    <details><summary>Do you offer a warranty?</summary><p>Yes — 30-day labor warranty. If the same issue returns within 30 days, I fix it at no extra labor cost.</p></details>
-    <details><summary>Will you tell me if it's not worth fixing?</summary><p>Absolutely. If the repair costs more than the equipment is worth, I'll tell you upfront.</p></details>
-    <details><summary>What payment do you accept?</summary><p>Cash, check, Venmo, and Zelle. Payment due when the work is done and you're satisfied.</p></details>
-  </div>
-</section>
-
-<!-- Contact -->
-<section id="contact">
-  <div class="wrap contact-inner">
-    <div>
-      <p class="eyebrow light">Contact</p>
-      <h2>Let's get it fixed.</h2>
-      <p>Call, text, or email. I respond fast.</p>
-    </div>
-    <div class="contact-details">
-      <a href="tel:+16125551234">📞 (612) 555-1234 *</a>
-      <a href="mailto:matt@mattspowerequipment.com">📧 matt@mattspowerequipment.com *</a>
-      <p>📍 Coon Rapids, MN 55433 — by appointment</p>
-      <p>🕐 Mon–Fri 8am–6pm · Sat 9am–3pm</p>
-      <p class="fine">* Placeholder — update with Matt's real info</p>
-    </div>
-  </div>
-</section>
+  </section>
+</main>
 
 <footer>
   <div class="wrap">
-    <p>&copy; 2026 Matt's Power Equipment Repair — Coon Rapids, MN</p>
+    <p>&copy; 2026 Matt's Power Equipment Repair. All Rights Reserved. Coon Rapids, MN.</p>
   </div>
 </footer>
 
 <script>
-document.querySelector('.menu-btn').addEventListener('click', function() {
-  document.querySelector('.nav-links').classList.toggle('open');
+// Mobile Menu Toggle
+const menuBtn = document.querySelector('.menu-btn');
+const navLinks = document.querySelector('.nav-links');
+
+menuBtn.addEventListener('click', () => {
+  navLinks.classList.toggle('open');
 });
-document.querySelectorAll('.nav-links a').forEach(function(a) {
-  a.addEventListener('click', function() { document.querySelector('.nav-links').classList.remove('open'); });
+
+// Close mobile menu on link click
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => { 
+    navLinks.classList.remove('open'); 
+  });
 });
-// Fade in on scroll
-var els = document.querySelectorAll('.service-row, .steps li, .pricing-cols > div, blockquote, details, .about-inner > div');
-var obs = new IntersectionObserver(function(entries) {
-  entries.forEach(function(e) { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
-}, { threshold: 0.1 });
-els.forEach(function(el) { el.classList.add('fade-up'); obs.observe(el); });
+
+// Smooth Fade-in on Scroll using Intersection Observer
+const observerOptions = {
+  root: null,
+  rootMargin: '0px',
+  threshold: 0.15
+};
+
+const observer = new IntersectionObserver((entries, observer) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, observerOptions);
+
+document.querySelectorAll('.fade-up').forEach(el => {
+  observer.observe(el);
+});
+
+// Change Nav background opacity on scroll
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('nav');
+  if (window.scrollY > 50) {
+    nav.style.background = 'var(--glass-bg)';
+    nav.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
+  } else {
+    nav.style.background = 'rgba(255,255,255,0.6)';
+    nav.style.boxShadow = 'none';
+  }
+});
 </script>
 
 </body>
