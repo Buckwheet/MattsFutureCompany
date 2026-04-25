@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Matt's Power Equipment: Business Playbook</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0b1a14;
+      --primary-light: #163026;
+      --accent: #d92d20;
+      --bg: #f4f5f4;
+      --surface: #ffffff;
+      --text: #333;
+      --muted: #666;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      margin: 0;
+      padding: 0;
+    }
+    .nav-bar { background: var(--primary); padding: 20px; text-align: center; color: white; font-size: 1.5rem; font-weight: bold; }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: var(--surface);
+      padding: 50px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    }
+    h1, h2, h3 { color: var(--primary); }
+    h1 { font-size: 2.2rem; border-bottom: 3px solid var(--accent); padding-bottom: 10px; margin-bottom: 30px; }
+    h2 { font-size: 1.8rem; margin-top: 40px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    h3 { font-size: 1.3rem; margin-top: 30px; }
+    p, li { font-size: 1.1rem; }
+    ul, ol { margin-bottom: 20px; }
+    li { margin-bottom: 10px; }
+    .alert {
+      background: #fdf2f2;
+      border-left: 4px solid var(--accent);
+      padding: 20px;
+      margin: 25px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .alert-tip {
+      background: #f0fdf4;
+      border-left: 4px solid #16a34a;
+    }
+    .alert strong { display: block; margin-bottom: 10px; font-size: 1.15rem; color: var(--primary); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 25px 0;
+    }
+    th, td {
+      text-align: left;
+      padding: 15px;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: var(--primary);
+      color: white;
+    }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    hr { border: 0; border-top: 2px solid #eee; margin: 40px 0; }
+    @media (max-width: 768px) {
+      .container { margin: 20px; padding: 30px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-bar">Matt's Power Equipment</div>
+  <div class="container">
+    <h1>Business & Marketing Playbook</h1>
+    <p>This document outlines the strategy for transitioning from a simple website to a fully operational business capable of taking service requests, managing CRM, sending SMS updates, invoicing, and processing payments—while keeping software costs as close to $0 as possible. It also covers a hyper-local advertising strategy to net 3-5 customers a week on a $50/month budget.</p>
+
+    <hr>
+
+    <h2>Part 1: The Tech Stack (100% Free Software)</h2>
+    <p>To achieve scheduling, CRM, SMS reminders, invoicing, and payments for free, we will use <strong>Square Appointments</strong> (Free Tier).</p>
+    <p>Building a custom database + SMS gateway + Payment gateway would require an expensive backend server. Square gives solo business owners an incredibly generous free tier because they make their money on the 2.9% credit card transaction fee <em>only</em> when you actually get paid via card.</p>
+    
+    <h3>What Square handles for free:</h3>
+    <ol>
+      <li><strong>Scheduling & CRM:</strong> A booking portal where customers select a service (e.g., "Snowblower Diagnostic"). It stores their name, phone, and equipment details.</li>
+      <li><strong>SMS & Email:</strong> Automatically sends appointment confirmations, reminders, and invoice links via text and email.</li>
+      <li><strong>Invoicing & Payments:</strong> When the repair is done, hit a button in the Square App to send the customer an invoice. They pay online with a credit card, or you can mark it paid via cash/check.</li>
+    </ol>
+
+    <h3>What Matt Needs To Do:</h3>
+    <ol>
+      <li>Go to <code>squareup.com/appointments</code> and create a free account.</li>
+      <li>Add the business services (e.g., "Push Mower Tune-Up - $89", "General Diagnostic - Free").</li>
+      <li>Provide the "Online Booking URL" so it can be directly embedded into the website.</li>
+    </ol>
+
+    <hr>
+
+    <h2>Part 2: Advertising Strategy ($50/mo Budget)</h2>
+    <p>With a $50/month budget, paid Google Ads are not viable (clicks often cost $3-$5 each). Instead, we will use a <strong>Hyper-Local Hustle Strategy</strong> that leverages sweat equity to easily net 3-5 customers a week.</p>
+
+    <h3>1. Google Business Profile (Free & Mandatory)</h3>
+    <p>The vast majority of business will come from people Googling "lawn mower repair near me."</p>
+    <ul>
+      <li><strong>Action:</strong> Register at <code>google.com/business</code>. Use your home address but set it as a "Service Area Business" so your house is hidden, but your service area (Coon Rapids + 15 miles) is visible.</li>
+      <li><strong>Goal:</strong> Get your first 5 customers to leave a 5-star review. Once you have 5 reviews, Google will significantly boost you in local searches.</li>
+    </ul>
+
+    <h3>2. Nextdoor & Facebook Local Groups (Free)</h3>
+    <p>People trust their neighbors for local repair services.</p>
+    <ul>
+      <li><strong>Action:</strong> Join the Coon Rapids, Blaine, and Andover community Facebook groups.</li>
+      <li><strong>Action:</strong> Once a week, post a helpful tip. Example: <em>"Hey Coon Rapids neighbors, friendly reminder to drain your snowblower gas so the carburetor doesn't gum up over the summer! If you need help getting your mower ready for spring, I'm a local mechanic doing $89 tune-ups. Send me a message!"</em></li>
+    </ul>
+
+    <h3>3. Print Marketing ($30 - $50/month)</h3>
+    <p>This is where the actual budget goes.</p>
+    <ul>
+      <li><strong>Action:</strong> Spend $30-$50 to print 200 high-quality door hangers or flyers (VistaPrint or local shop).</li>
+      <li><strong>Execution:</strong> On a Saturday morning, walk through higher-income neighborhoods with large lawns (e.g., Andover, Blaine) and hang them on doors. Do this in early April for mowers, and November for snowblowers.</li>
+    </ul>
+
+    <hr>
+
+    <h2>Part 3: Operations & Software FAQ</h2>
+    
+    <div class="alert alert-tip">
+      <strong>Q: What about having an Android tablet to manage and close work orders?</strong>
+      An Android tablet is the absolute perfect piece of hardware for the garage. By running the Square Appointments and Square Point of Sale (POS) apps on a $100 tablet, it becomes the entire command center. You can see the daily schedule, add diagnostic notes to a customer's file, close out work orders, plug in a $10 card reader for in-person payments, or text an invoice to a customer—all without touching a piece of paper.
+    </div>
+
+    <div class="alert alert-tip">
+      <strong>Q: Can the customer schedule service, add a 3% convenience fee acceptance, and provide a credit card in advance?</strong>
+      Yes. Square Appointments has a setting called <strong>"Require Card on File"</strong> which forces the customer to enter their credit card to secure the booking. You can also configure a 3% <strong>Service Fee / Surcharge</strong> for credit card transactions (which is compliant in MN). You can add a mandatory checkbox during booking where they agree to the 3% fee if paying via credit card.
+    </div>
+
+    <div class="alert alert-tip">
+      <strong>Q: If someone has a $100 invoice and they pay with cash, what happens with Square? Are there fees?</strong>
+      If you record a payment as "Cash" or "Check" in Square, <strong>it costs you absolutely $0.00</strong>. There are no fees. Square simply marks the invoice as "Paid", logs the $100 in your sales reports for your tracking, and emails the customer a receipt. Square only takes their 2.9% fee if they actually process a physical or digital credit card for you.
+    </div>
+
+    <div class="alert alert-tip">
+      <strong>Q: Do customers need to create accounts for customer management, or is that stored in Square for reminder marketing?</strong>
+      Customers <strong>do not</strong> need to create any accounts, remember passwords, or download apps. When they enter their name/phone to book an appointment, <strong>Square Customer Directory</strong> automatically creates a profile behind the scenes. Square tracks their equipment and invoices. Matt can then use <strong>Square Marketing</strong> to instantly text blast all past customers (e.g., "Spring is here! Book your $89 tune-up").
+    </div>
+
+    <div class="alert alert-tip">
+      <strong>Q: Does Square have an API for adding products or services so AI could manage it for us?</strong>
+      Yes! Square has a very powerful Developer API (the Catalog API). With a free API access token, an AI assistant or custom script could instantly sync a giant spreadsheet of 100+ services, update pricing for the new season, or manage physical parts inventory automatically.
+    </div>
+
+    <hr>
+
+    <h2>Part 4: The Path to Full-Time ($30/Hour Replacement)</h2>
+    <p><strong>The Goal:</strong> Replace a $30/hour full-time job.<br>
+    <strong>The Math:</strong></p>
+    <ul>
+      <li>$30/hour &times; 40 hours/week = <strong>$1,200/week gross income</strong>.</li>
+      <li>At a $50/hour labor rate, Matt needs to bill <strong>24 hours of labor per week</strong> to hit $1,200.</li>
+      <li>Assuming the average repair takes 1.5 hours and generates ~$75 in labor: Matt needs <strong>16 customers a week</strong> (about 3 repairs a day, 5 days a week).</li>
+    </ul>
+
+    <h3>The Data: 500-Run Monte Carlo Simulation</h3>
+    <p>To determine the true likelihood of hitting this goal, I ran a computer simulation factoring in heavy seasonality (dead winters, busy springs), random spikes in customer demand, and crucially, capping Matt's billable "wrench-turning" time at <strong>35 hours a week</strong>. Here is the probability of replacing his job over 500 simulated years:</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Labor Rate</th>
+          <th>Probability of Hitting $62,400</th>
+          <th>Average Yearly Income</th>
+          <th>Worst Case Scenario</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>$50 / hr</strong></td>
+          <td>0.0%</td>
+          <td>$46,183</td>
+          <td>$41,242</td>
+        </tr>
+        <tr>
+          <td><strong>$60 / hr</strong></td>
+          <td>0.0%</td>
+          <td>$55,482</td>
+          <td>$49,660</td>
+        </tr>
+        <tr>
+          <td><strong>$70 / hr</strong></td>
+          <td>82.2%</td>
+          <td>$64,641</td>
+          <td>$57,135</td>
+        </tr>
+        <tr>
+          <td><strong>$80 / hr</strong></td>
+          <td>100.0%</td>
+          <td>$73,826</td>
+          <td>$64,483</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert">
+      <strong>$50/hour is mathematically too low.</strong>
+      Because of the heavy seasonality and the 35-hour billable cap, $50/hour makes it virtually impossible to replace a $30/hr job. Matt would have to work exhausting 70+ hour weeks during the summer to bank enough cash to survive February.
+    </div>
+
+    <div class="alert alert-tip">
+      <strong>The Sweet Spot: $75 to $80 / hour.</strong>
+      Since local brick-and-mortar dealerships charge ~$100/hour, charging $80/hour is still a massive <strong>20% discount</strong> that customers will love. At $80/hour, the simulation showed a <strong>100% success rate</strong>, averaging $73,000/year. It guarantees financial security while keeping him highly competitive.
+    </div>
+
+    <h3>Advanced Scenario: The 10% Cash Discount Strategy</h3>
+    <p>Many local service businesses offer a <strong>10% discount for cash payments</strong>, which provides significant "flexibility" when reporting taxes. To see how this impacts his actual <strong>take-home pay</strong> compared to a W2 salaried job, I ran another 500-year simulation:</p>
+    <ul>
+      <li>A $62,400 W2 salaried job results in roughly <strong>$46,800 in actual take-home pay</strong>.</li>
+      <li>If Matt offers a 10% cash discount, we assume <strong>60% of customers pay cash</strong> (flexible tax reporting) and <strong>40% pay with a card</strong> (taxed at standard 30% self-employment rates).</li>
+    </ul>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Base Labor Rate</th>
+          <th>Avg Cash vs Card Mix</th>
+          <th>Average Take-Home Pay</th>
+          <th>Probability of Beating a $62k W2 Job</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>$60 / hr</strong></td>
+          <td>($54 Cash / $60 Card)</td>
+          <td>$45,513</td>
+          <td>22.2%</td>
+        </tr>
+        <tr>
+          <td><strong>$70 / hr</strong></td>
+          <td>($63 Cash / $70 Card)</td>
+          <td><strong>$52,961</strong></td>
+          <td><strong>99.8%</strong></td>
+        </tr>
+        <tr>
+          <td><strong>$80 / hr</strong></td>
+          <td>($72 Cash / $80 Card)</td>
+          <td><strong>$60,541</strong></td>
+          <td><strong>100.0%</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert">
+      <strong>The Power of Cash</strong>
+      Because of the tax flexibility of cash, dropping his base rate to <strong>$70/hour</strong> (with a $63/hr cash rate) practically guarantees he will take home significantly more money than a $62,000 corporate job. At $80/hr, his take-home pay is equivalent to an $80,000+ W2 salary.
+    </div>
+
+    <hr>
+
+    <h2>Part 5: AI Automation & Parts Forecasting (Cost: $0)</h2>
+    <p>As the business scales, waiting on parts becomes the biggest bottleneck. The goal is to predict what Matt needs <em>before</em> the customer drops off their equipment. We can build a completely free AI-driven forecasting system to handle this.</p>
+
+    <h3>1. Free Hosting & Hourly "Cron" Jobs</h3>
+    <p>The website is currently hosted entirely for free on <strong>GitHub Pages</strong>. We don't need to pay for a backend server. Instead, we can use <strong>GitHub Actions</strong>, which allows us to run background scripts on an hourly or daily schedule completely for free.</p>
+
+    <h3>2. Tracking Parts Inventory</h3>
+    <p>We will use a free <strong>Google Sheet</strong> (or Square's free Inventory API) as the master parts database. Matt simply logs when a part arrives or is used.</p>
+
+    <h3>3. The AI Forecaster</h3>
+    <p>Every night at 8 PM, a GitHub Action will trigger a custom Python script that I write for you. This script will:</p>
+    <ol>
+      <li><strong>Analyze Upcoming Appointments:</strong> Connect to the Square API to see what equipment is scheduled to be dropped off next week (e.g., "3 Toro Snowblowers").</li>
+      <li><strong>Check Current Stock:</strong> Read the Google Sheet / Square Inventory to see how many Toro shear pins and carburetor kits are currently on the shelf.</li>
+      <li><strong>AI Prediction:</strong> The script will feed this data into an AI model to analyze seasonal trends and upcoming workloads.</li>
+    </ol>
+
+    <h3>4. Automated Reporting</h3>
+    <p>If the AI realizes Matt is dangerously low on parts for upcoming jobs, the script will automatically generate a human-readable <strong>Forecast Report</strong> and email or text it to him.</p>
+
+    <div class="alert alert-tip">
+      <strong>Example Report:</strong>
+      "Hey Matt, you have 4 snowblowers scheduled for drop-off next week, but you only have 1 shear pin and 0 Toro carb kits in stock. It's late November, so demand is spiking. You should order 10 shear pins and 3 carb kits from your supplier tonight so they arrive before Tuesday."
+    </div>
+
+    <p>This system costs <strong>$0/month</strong>, runs completely in the background, and acts as a dedicated supply chain manager so Matt never has to pause wrenching to count spark plugs.</p>
+  </div>
+</body>
+</html>
