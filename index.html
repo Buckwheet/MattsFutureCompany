@@ -76,21 +76,56 @@
 </nav>
 
 <main>
-  <!-- Hero -->
+  <!-- Hero Carousel -->
   <header id="hero">
-    <div class="wrap hero-inner">
-      <div class="hero-content fade-up">
-        <span class="eyebrow">Small Engine Repair — Coon Rapids, MN</span>
+    <!-- Slide 1 -->
+    <div class="slide active" style="background-image: url('images/hero.png');">
+      <div class="slide-overlay"></div>
+      <div class="slide-content">
+        <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Small Engine Repair</span>
         <h1>Your equipment,<br>running like new.</h1>
-        <p class="hero-p">Lawn mowers, snow blowers, trimmers, chainsaws — if it has a small engine, I fix it. Honest work, fair prices, and fast turnaround in the North Metro.</p>
+        <p>Lawn mowers, snow blowers, trimmers, chainsaws — if it has a small engine, I fix it. Honest work, fair prices, and fast turnaround in the North Metro.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary">Get a Free Estimate</a>
           <a href="tel:+16125551234" class="btn btn-secondary">Call (612) 555-1234</a>
         </div>
       </div>
-      <div class="hero-img fade-up" style="transition-delay: 0.2s">
-        <img src="images/hero.png" alt="Pristine riding lawn mower on a lush green lawn" fetchpriority="high">
+    </div>
+    
+    <!-- Slide 2 -->
+    <div class="slide" style="background-image: url('images/spring.png');">
+      <div class="slide-overlay"></div>
+      <div class="slide-content">
+        <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Spring Special</span>
+        <h1>$89 Spring Tune-Up</h1>
+        <p>Get ready for mowing season! Includes oil change, new spark plug, air filter replacement, and blade sharpening — everything your push mower needs to start strong.</p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn btn-primary">Book Your Tune-Up</a>
+        </div>
       </div>
+    </div>
+    
+    <!-- Slide 3 -->
+    <div class="slide" style="background-image: url('images/engine.png');">
+      <div class="slide-overlay"></div>
+      <div class="slide-content">
+        <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Expert Repair</span>
+        <h1>Complete Engine Rebuilds</h1>
+        <p>Don't replace your expensive equipment. Complete teardown and rebuild services available for Briggs & Stratton, Kohler, Honda, and more. Save hundreds over buying new.</p>
+        <div class="hero-actions">
+          <a href="#services" class="btn btn-primary">See All Services</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <button class="carousel-btn carousel-prev" aria-label="Previous Slide">❮</button>
+    <button class="carousel-btn carousel-next" aria-label="Next Slide">❯</button>
+    
+    <div class="carousel-dots">
+      <button class="dot active" aria-label="Go to slide 1"></button>
+      <button class="dot" aria-label="Go to slide 2"></button>
+      <button class="dot" aria-label="Go to slide 3"></button>
     </div>
   </header>
 
@@ -181,23 +216,6 @@
           <div class="step-num">4</div>
           <h3>Ready to Work</h3>
           <p>Tested, cleaned, and ready for the season. Pick it up or have it delivered directly to your home.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Seasonal Special -->
-  <section id="seasonal">
-    <div class="wrap">
-      <div class="seasonal-inner fade-up">
-        <div class="seasonal-content">
-          <span class="eyebrow light">Spring Special</span>
-          <h2>$89 Spring Tune-Up</h2>
-          <p>Get ready for mowing season! Includes oil change, new spark plug, air filter replacement, and blade sharpening — everything your push mower needs to start strong and cut clean. (Riding mowers slightly higher based on size).</p>
-          <a href="#contact" class="btn btn-primary">Book Your Tune-Up</a>
-        </div>
-        <div class="seasonal-img">
-          <img src="images/spring.png" alt="Beautiful green spring lawn with a push mower handle in the foreground" loading="lazy">
         </div>
       </div>
     </div>
@@ -426,6 +444,62 @@ window.addEventListener('scroll', () => {
   } else {
     nav.style.boxShadow = 'none';
   }
+});
+
+// Carousel Logic
+document.addEventListener('DOMContentLoaded', () => {
+  const slides = document.querySelectorAll('.slide');
+  const dots = document.querySelectorAll('.dot');
+  const prevBtn = document.querySelector('.carousel-prev');
+  const nextBtn = document.querySelector('.carousel-next');
+  let currentSlide = 0;
+  let slideInterval;
+
+  const goToSlide = (index) => {
+    slides[currentSlide].classList.remove('active');
+    dots[currentSlide].classList.remove('active');
+    
+    currentSlide = (index + slides.length) % slides.length;
+    
+    slides[currentSlide].classList.add('active');
+    dots[currentSlide].classList.add('active');
+  };
+
+  const nextSlide = () => goToSlide(currentSlide + 1);
+  const prevSlide = () => goToSlide(currentSlide - 1);
+
+  const startSlideshow = () => {
+    slideInterval = setInterval(nextSlide, 7000);
+  };
+
+  const resetSlideshow = () => {
+    clearInterval(slideInterval);
+    startSlideshow();
+  };
+
+  prevBtn.addEventListener('click', () => {
+    prevSlide();
+    resetSlideshow();
+  });
+
+  nextBtn.addEventListener('click', () => {
+    nextSlide();
+    resetSlideshow();
+  });
+
+  dots.forEach((dot, index) => {
+    dot.addEventListener('click', () => {
+      goToSlide(index);
+      resetSlideshow();
+    });
+  });
+
+  // Pause on hover
+  const hero = document.getElementById('hero');
+  hero.addEventListener('mouseenter', () => clearInterval(slideInterval));
+  hero.addEventListener('mouseleave', startSlideshow);
+
+  startSlideshow();
 });
 </script>
 
