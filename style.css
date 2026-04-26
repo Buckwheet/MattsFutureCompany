@@ -288,8 +288,7 @@ nav {
 /* === Service Area === */
 #area { background: var(--bg-color); text-align: center; }
 .area-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 32px 0; max-width: 850px; margin-inline: auto; }
-.area-tags span, .area-tags strong { padding: 10px 20px; border-radius: 50px; font-size: 0.95rem; font-weight: 500; background: var(--surface); border: 1px solid var(--border); }
-.area-tags strong { background: var(--primary); color: #fff; border-color: var(--primary); }
+.area-tags span { padding: 10px 20px; border-radius: 50px; font-size: 0.95rem; font-weight: 500; background: var(--surface); border: 1px solid var(--border); }
 
 /* === FAQ === */
 #faq { background: var(--surface); max-width: 750px; margin: 0 auto; }
