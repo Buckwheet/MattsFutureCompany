@@ -322,7 +322,7 @@ footer p { font-size: 0.9rem; color: rgba(255,255,255,0.5); margin: 0; }
 }
 
 @media (max-width: 768px) {
-  .hide-mobile { display: none; }
+  .logo-text { font-size: 1rem; line-height: 1.2; max-width: 200px; }
   
   section { padding: 60px 0; }
   .menu-btn { display: block; }
