@@ -513,6 +513,26 @@ document.addEventListener('DOMContentLoaded', () => {
   hero.addEventListener('mouseenter', () => clearInterval(slideInterval));
   hero.addEventListener('mouseleave', startSlideshow);
 
+  // Touch Swiping for Mobile
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  hero.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+
+  hero.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    const swipeDistance = touchEndX - touchStartX;
+    if (swipeDistance > 50) {
+      prevSlide();
+      resetSlideshow();
+    } else if (swipeDistance < -50) {
+      nextSlide();
+      resetSlideshow();
+    }
+  }, { passive: true });
+
   startSlideshow();
 });
 </script>
