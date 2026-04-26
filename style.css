@@ -270,10 +270,10 @@ nav {
 
 .estimate-table { background: var(--surface); max-width: 650px; margin: 0 auto; padding: 40px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); text-align: left; border: 1px solid var(--border); }
 .estimate-table h3 { text-align: center; margin-bottom: 24px; }
-.estimate-table dl > div { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.estimate-table dl > div { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .estimate-table dl > div:last-child { border-bottom: none; }
 .estimate-table dt { color: var(--text-muted); font-weight: 500; }
-.estimate-table dd { font-weight: 700; color: var(--primary); }
+.estimate-table dd { font-weight: 700; color: var(--primary); text-align: right; white-space: nowrap; }
 .fine { font-size: 0.85rem; color: #888; margin-top: 20px; text-align: center; }
 
 /* === About & Reviews === */
