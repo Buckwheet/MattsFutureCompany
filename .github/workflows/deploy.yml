@@ -36,6 +36,10 @@ jobs:
           secrets: |
             STRIPE_SECRET_KEY
             RESEND_API_KEY
+            SQUARE_ACCESS_TOKEN
+            SQUARE_LOCATION_ID
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SQUARE_ACCESS_TOKEN: ${{ secrets.SQUARE_ACCESS_TOKEN }}
+          SQUARE_LOCATION_ID: ${{ secrets.SQUARE_LOCATION_ID }}

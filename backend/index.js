@@ -23,33 +23,60 @@ export default {
       const data = await request.json();
       const { name, email, phone, equipment, issue } = data;
 
-      // 1. Stripe Customer Logic (Search or Create)
-      const existingCustomers = await stripe.customers.list({ email: email, limit: 1 });
-      let customer;
-      
-      if (existingCustomers.data.length > 0) {
-        customer = existingCustomers.data[0];
-        await stripe.customers.update(customer.id, {
-          description: `Latest Equipment: ${equipment}`,
-          metadata: {
-            latest_issue: issue,
-            latest_equipment: equipment,
-            last_request_date: new Date().toISOString()
-          }
+      // 1. STRIPE CUSTOMER LOGIC
+      const stripeCustomers = await stripe.customers.list({ email: email, limit: 1 });
+      let stripeCustomer;
+      if (stripeCustomers.data.length > 0) {
+        stripeCustomer = stripeCustomers.data[0];
+        await stripe.customers.update(stripeCustomer.id, {
+          metadata: { latest_issue: issue, latest_equipment: equipment }
         });
       } else {
-        customer = await stripe.customers.create({
-          name, email, phone,
-          description: `Equipment: ${equipment}`,
-          metadata: {
-            latest_issue: issue,
-            latest_equipment: equipment,
-            first_request_date: new Date().toISOString()
-          }
-        });
+        stripeCustomer = await stripe.customers.create({ name, email, phone, metadata: { latest_issue: issue, latest_equipment: equipment } });
       }
 
-      // 2. INTERNAL NOTIFICATION (To Matt)
+      // 2. SQUARE CUSTOMER LOGIC (Sync)
+      let squareCustomerId = "pending";
+      try {
+        const squareRes = await fetch('https://connect.squareup.com/v2/customers/search', {
+          method: 'POST',
+          headers: {
+            'Square-Version': '2026-05-02',
+            'Authorization': `Bearer ${env.SQUARE_ACCESS_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: { filter: { email_address: { exact: email } } }
+          })
+        });
+        const squareData = await squareRes.json();
+        
+        if (squareData.customers && squareData.customers.length > 0) {
+          squareCustomerId = squareData.customers[0].id;
+        } else {
+          const createSquare = await fetch('https://connect.squareup.com/v2/customers', {
+            method: 'POST',
+            headers: {
+              'Square-Version': '2026-05-02',
+              'Authorization': `Bearer ${env.SQUARE_ACCESS_TOKEN}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              given_name: name.split(' ')[0],
+              family_name: name.split(' ').slice(1).join(' '),
+              email_address: email,
+              phone_number: phone,
+              note: `Equipment: ${equipment} | Issue: ${issue}`
+            })
+          });
+          const newSquare = await createSquare.json();
+          squareCustomerId = newSquare.customer.id;
+        }
+      } catch (e) {
+        console.error('Square Sync Error:', e.message);
+      }
+
+      // 3. NOTIFY MATT (Dual Dashboard Links)
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -63,17 +90,18 @@ export default {
           html: `
             <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
               <h2 style="color: #0b1a14;">New Service Request</h2>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Customer:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${name}</td></tr>
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Email:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${email}</td></tr>
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Phone:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${phone}</td></tr>
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Equipment:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${equipment}</td></tr>
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Issue:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${issue}</td></tr>
-              </table>
-              <div style="margin-top: 30px;">
-                <a href="https://dashboard.stripe.com/customers/${customer.id}" 
-                   style="background: #d92d20; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                   View in Stripe Dashboard
+              <p><strong>Customer:</strong> ${name}</p>
+              <p><strong>Equipment:</strong> ${equipment}</p>
+              <p><strong>Issue:</strong> ${issue}</p>
+              
+              <div style="margin-top: 30px; display: flex; gap: 10px;">
+                <a href="https://dashboard.stripe.com/customers/${stripeCustomer.id}" 
+                   style="background: #d92d20; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">
+                   Billing (Stripe)
+                </a>
+                <a href="https://squareupsm.com/dashboard/customers/directory/customer/${squareCustomerId}" 
+                   style="background: #006aff; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">
+                   Schedule (Square)
                 </a>
               </div>
             </div>
@@ -81,7 +109,7 @@ export default {
         }),
       });
 
-      // 3. EXTERNAL AUTO-RESPONSE (To Customer)
+      // 4. AUTO-RESPONSE TO CUSTOMER
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -93,38 +121,17 @@ export default {
           to: email,
           subject: `🔧 Request Received: Repairing your ${equipment}`,
           html: `
-            <div style="font-family: sans-serif; max-width: 600px; padding: 30px; color: #333; line-height: 1.6;">
-              <h2 style="color: #0b1a14;">Hi ${name}, I've received your request!</h2>
-              <p>Thanks for reaching out. I'm currently reviewing the details of your <strong>${equipment}</strong> repair and I'll be in touch shortly via phone or email to discuss the next steps.</p>
-              
-              <h3 style="color: #d92d20; margin-top: 30px;">How It Works:</h3>
-              <ul style="padding-left: 20px;">
-                <li style="margin-bottom: 12px;"><strong>Assessment:</strong> I'll contact you to discuss the issue and schedule a pickup or drop-off.</li>
-                <li style="margin-bottom: 12px;"><strong>Secure Estimate:</strong> You will receive a professional <strong>Stripe Quote</strong> via email to approve before any work begins.</li>
-                <li style="margin-bottom: 12px;"><strong>Fast Repair:</strong> Most repairs are completed within 48 hours of assessment.</li>
-                <li style="margin-bottom: 12px;"><strong>Easy Payment:</strong> Once you're satisfied with the work, pay securely on-site via Tap-to-Pay or through a secure link on your phone.</li>
-              </ul>
-
-              <p style="margin-top: 40px; font-size: 0.9rem; color: #666;">
-                Looking forward to getting you back to work!<br>
-                <strong>Matt Peterson</strong><br>
-                Peterson Small Engine Repair
-              </p>
+            <div style="font-family: sans-serif; max-width: 600px; padding: 30px; color: #333;">
+              <h2 style="color: #0b1a14;">Hi ${name}, Matt here.</h2>
+              <p>I've received your request for your <strong>${equipment}</strong>. I'm reviewing the details now and will contact you shortly to schedule an assessment.</p>
+              <p>Talk soon!</p>
             </div>
           `
         }),
       });
 
-      // 4. Return success to frontend
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: 'Request received! Matt will contact you soon.',
-        customerId: customer.id 
-      }), {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
 
     } catch (err) {
