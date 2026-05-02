@@ -4,7 +4,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Package, Scan, Plus, Search, AlertTriangle, ArrowLeft, Save } from 'lucide-react';
 import './App.css';
 
-const API_BASE = 'https://peterson-backend.buckwheet.workers.dev';
+const API_BASE = 'https://peterson-backend.mattssmallenginerep.workers.dev';
 
 function App() {
   const [parts, setParts] = useState([]);
@@ -34,11 +34,25 @@ function App() {
     setShowScanner(true);
     setTimeout(() => {
       const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-      scanner.render((decodedText) => {
-        setFormData({ ...formData, upc: decodedText, sku: decodedText });
+      scanner.render(async (decodedText) => {
         scanner.clear();
         setShowScanner(false);
+        setFormData(prev => ({ ...prev, upc: decodedText, sku: decodedText }));
         setShowAddModal(true);
+
+        // Auto-Identify Lookup
+        try {
+          const res = await axios.get(`${API_BASE}/api/lookup?upc=${decodedText}`);
+          if (res.data.success) {
+            setFormData(prev => ({ 
+              ...prev, 
+              name: res.data.name, 
+              description: res.data.description 
+            }));
+          }
+        } catch (e) {
+          console.error('Lookup failed:', e);
+        }
       }, (error) => {
         // console.warn(error);
       });

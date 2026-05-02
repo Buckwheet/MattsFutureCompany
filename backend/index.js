@@ -7,14 +7,41 @@ export default {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST',
-          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
       });
     }
 
     const url = new URL(request.url);
     const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+
+    // --- ROUTE: GET /api/lookup?upc=... (Auto-Identify) ---
+    if (url.pathname === '/api/lookup' && request.method === 'GET') {
+      const upc = url.searchParams.get('upc');
+      if (!upc) return new Response('UPC Required', { status: 400 });
+      
+      try {
+        const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`);
+        const data = await res.json();
+        
+        if (data.items && data.items.length > 0) {
+          const item = data.items[0];
+          return new Response(JSON.stringify({
+            name: item.title,
+            description: item.description,
+            success: true
+          }), {
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+          });
+        }
+        return new Response(JSON.stringify({ success: false }), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+      }
+    }
 
     // --- ROUTE: GET /api/photos/:key (Serve Image) ---
     if (url.pathname.startsWith('/api/photos/')) {
