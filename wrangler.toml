@@ -1,4 +1,4 @@
-name = "petersons-small-engine-repair"
+name = "peterson-small-engine-repair"
 pages_build_output_dir = "./"
 
 [dev]
