@@ -22,13 +22,17 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy . --project-name=petersons-small-engine-repair --branch=main --skip-caching
 
+      - name: Install Backend Dependencies
+        run: npm install
+        working-directory: backend
+
       - name: Deploy Backend Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: backend
-          command: deploy --name=peterson-backend
+          command: deploy --name=peterson-backend --compatibility-date=2026-05-02
           secrets: |
             STRIPE_SECRET_KEY
         env:
