@@ -141,10 +141,23 @@ export default {
               to: email,
               subject: `🔧 Request Received: Repairing your ${equipment}`,
               html: `
-                <div style="font-family: sans-serif; max-width: 600px; padding: 30px; color: #333;">
-                  <h2 style="color: #0b1a14;">Hi ${name}, Matt here.</h2>
-                  <p>I've received your request for your <strong>${equipment}</strong>. I'm reviewing the details now and will contact you shortly to schedule an assessment.</p>
-                  <p>Talk soon!</p>
+                <div style="font-family: sans-serif; max-width: 600px; padding: 30px; color: #333; line-height: 1.6;">
+                  <h2 style="color: #0b1a14;">Hi ${name}, I've received your request!</h2>
+                  <p>Thanks for reaching out. I'm currently reviewing the details of your <strong>${equipment}</strong> repair and I'll be in touch shortly via phone or email to discuss the next steps.</p>
+                  
+                  <h3 style="color: #d92d20; margin-top: 30px;">How It Works:</h3>
+                  <ul style="padding-left: 20px;">
+                    <li style="margin-bottom: 12px;"><strong>Assessment:</strong> I'll contact you to discuss the issue and schedule a pickup or drop-off.</li>
+                    <li style="margin-bottom: 12px;"><strong>Secure Estimate:</strong> You will receive a professional <strong>Stripe Quote</strong> via email to approve before any work begins.</li>
+                    <li style="margin-bottom: 12px;"><strong>Fast Repair:</strong> Most repairs are completed within 48 hours of assessment.</li>
+                    <li style="margin-bottom: 12px;"><strong>Easy Payment:</strong> Once you're satisfied with the work, pay securely on-site via Tap-to-Pay or through a secure link on your phone.</li>
+                  </ul>
+
+                  <p style="margin-top: 40px; font-size: 0.9rem; color: #666;">
+                    Looking forward to getting you back to work!<br>
+                    <strong>Matt Peterson</strong><br>
+                    Peterson Small Engine Repair
+                  </p>
                 </div>
               `
             }),
