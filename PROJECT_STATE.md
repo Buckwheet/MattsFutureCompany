@@ -12,10 +12,13 @@
 * Updated branding to "Peterson Small Engine Repair" across all site files.
 * Configured **Cloudflare Email Forwarding**: `matt@petersonsmallenginerepair.com` -> `mattssmallenginerep@gmail.com`.
 * Added **Service Request Form** to frontend and created **Backend Worker** for automated Stripe Customer creation.
+* Integrated **Resend** for real-time lead notifications via email.
+* Added "Smart Search" to prevent duplicate Stripe customers and maintain unified history.
 
 **Commands run + results:**
 * `git push` -> Triggered automated deployment of site and worker.
 * `wrangler deploy` (via GitHub Actions) -> Successfully deployed `peterson-backend`.
+* `curl` -> Verified workers subdomain and zone status.
 
 **Files touched:**
 * `index.html`, `playbook.html`, `style.css`
@@ -24,6 +27,6 @@
 * `backend/` (New backend worker code)
 
 **Next 3 actions:**
-* [ ] Verify first successful Stripe Customer creation from the live form.
+* [x] Verify first successful Stripe Customer creation from the live form.
 * [ ] Initialize the Cloudflare Worker for AI Parts Forecasting.
 * [ ] Connect Square Appointments API for real-time scheduling.
