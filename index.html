@@ -448,98 +448,100 @@
   </div>
 </footer>
 
-<script>
-// Mobile Menu Toggle
-const menuBtn = document.querySelector('.menu-btn');
-const navLinks = document.querySelector('.nav-links');
-
-menuBtn.addEventListener('click', () => {
-  navLinks.classList.toggle('open');
-});
-
-// Close mobile menu on link click
-document.querySelectorAll('.nav-links a').forEach(a => {
-  a.addEventListener('click', () => { 
-    navLinks.classList.remove('open'); 
-  });
-});
-
-// Smooth Fade-in on Scroll using Intersection Observer
-const observerOptions = {
-  root: null,
-  rootMargin: '0px',
-  threshold: 0.15
-};
-
-const observer = new IntersectionObserver((entries, observer) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add('visible');
-      observer.unobserve(entry.target);
-    }
-  });
-}, observerOptions);
-
-document.querySelectorAll('.fade-up').forEach(el => {
-  observer.observe(el);
-});
-
-// Change Nav shadow on scroll
-window.addEventListener('scroll', () => {
-  const nav = document.querySelector('nav');
-  if (window.scrollY > 50) {
-    nav.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
-  } else {
-    nav.style.boxShadow = 'none';
-  }
-});
-
-// Carousel Logic
+// Main Initializer
 document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('js-enabled');
+  // Mobile Menu Toggle
+  const menuBtn = document.querySelector('.menu-btn');
+  const navLinks = document.querySelector('.nav-links');
+
+  if (menuBtn) {
+    menuBtn.addEventListener('click', () => {
+      navLinks.classList.toggle('open');
+    });
+  }
+
+  // Close mobile menu on link click
+  document.querySelectorAll('.nav-links a').forEach(a => {
+    a.addEventListener('click', () => { 
+      navLinks.classList.remove('open'); 
+    });
+  });
+
+  // Smooth Fade-in on Scroll using Intersection Observer
+  const observerOptions = {
+    root: null,
+    rootMargin: '0px',
+    threshold: 0.05
+  };
+
+  const observer = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.fade-up').forEach(el => {
+    observer.observe(el);
+  });
+
+  // Change Nav shadow on scroll
+  window.addEventListener('scroll', () => {
+    const nav = document.querySelector('nav');
+    if (nav) {
+      if (window.scrollY > 50) {
+        nav.style.boxShadow = '0 4px 20px rgba(0,0,0,0.2)';
+      } else {
+        nav.style.boxShadow = 'none';
+      }
+    }
+  }, { passive: true });
+
+  // Carousel Logic
   const slides = document.querySelectorAll('.slide');
   const dots = document.querySelectorAll('.dot');
   const prevBtn = document.querySelector('.carousel-prev');
   const nextBtn = document.querySelector('.carousel-next');
-  let currentSlide = 0;
-  let slideInterval;
+  
+  if (slides.length > 0) {
+    let currentSlide = 0;
+    let slideInterval;
 
-  const goToSlide = (index) => {
-    slides[currentSlide].classList.remove('active');
-    dots[currentSlide].classList.remove('active');
-    
-    currentSlide = (index + slides.length) % slides.length;
-    
-    slides[currentSlide].classList.add('active');
-    dots[currentSlide].classList.add('active');
-  };
+    const goToSlide = (index) => {
+      slides[currentSlide].classList.remove('active');
+      dots[currentSlide].classList.remove('active');
+      currentSlide = (index + slides.length) % slides.length;
+      slides[currentSlide].classList.add('active');
+      dots[currentSlide].classList.add('active');
+    };
 
-  const nextSlide = () => goToSlide(currentSlide + 1);
-  const prevSlide = () => goToSlide(currentSlide - 1);
+    const nextSlide = () => goToSlide(currentSlide + 1);
+    const prevSlide = () => goToSlide(currentSlide - 1);
 
-  const startSlideshow = () => {
-    slideInterval = setInterval(nextSlide, 7000);
-  };
+    const startSlideshow = () => {
+      slideInterval = setInterval(nextSlide, 7000);
+    };
 
-  const resetSlideshow = () => {
-    clearInterval(slideInterval);
-    startSlideshow();
-  };
+    const resetSlideshow = () => {
+      clearInterval(slideInterval);
+      startSlideshow();
+    };
 
-  prevBtn.addEventListener('click', () => {
-    prevSlide();
-    resetSlideshow();
-  });
+    if (prevBtn) prevBtn.addEventListener('click', () => { prevSlide(); resetSlideshow(); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { nextSlide(); resetSlideshow(); });
 
-  nextBtn.addEventListener('click', () => {
-    nextSlide();
-    resetSlideshow();
-  });
-
-  dots.forEach((dot, index) => {
-    dot.addEventListener('click', () => {
-      goToSlide(index);
-      resetSlideshow();
+    dots.forEach((dot, index) => {
+      dot.addEventListener('click', () => {
+        goToSlide(index);
+        resetSlideshow();
+      });
     });
+
+    startSlideshow();
+  }
   });
 
   // Pause on hover

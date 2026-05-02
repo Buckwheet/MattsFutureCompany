@@ -42,8 +42,21 @@ p { color: var(--text-muted); font-size: 1.05rem; }
 section { padding: 100px 0; position: relative; }
 
 /* === Smooth Animations === */
-.fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease-out, transform 0.6s ease-out; }
-.fade-up.visible { opacity: 1; transform: translateY(0); }
+.fade-up { 
+  opacity: 1; /* Default to visible for robustness */
+}
+
+/* Only hide for animation if JS is active */
+.js-enabled .fade-up:not(.visible) { 
+  opacity: 0; 
+  transform: translateY(20px); 
+}
+
+.fade-up.visible { 
+  opacity: 1; 
+  transform: translateY(0); 
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
 
 /* === Nav === */
 nav { 
@@ -204,7 +217,15 @@ nav {
 }
 
 /* === Trust === */
-#trust { padding: 32px 0; background: var(--primary); color: #fff; position: relative; z-index: 5; margin-top: -20px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+#trust { 
+  padding: 32px 0; 
+  background: var(--primary); 
+  color: #fff; 
+  position: relative; 
+  z-index: 10; 
+  margin-top: 0; /* Remove negative margin to prevent overlap */
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0; 
+}
 .trust-inner { display: flex; justify-content: space-around; gap: 24px; flex-wrap: wrap; }
 .trust-item { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 1rem; opacity: 0.9; }
 .trust-icon { color: var(--accent); font-size: 1.2rem; }
