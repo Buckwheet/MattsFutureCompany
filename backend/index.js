@@ -23,15 +23,11 @@ export default {
       const data = await request.json();
       const { name, email, phone, equipment, issue } = data;
 
-      // 1. Search for existing customer by email
-      const existingCustomers = await stripe.customers.list({
-        email: email,
-        limit: 1
-      });
-
+      // 1. Stripe Customer Logic (Search or Create)
+      const existingCustomers = await stripe.customers.list({ email: email, limit: 1 });
       let customer;
+      
       if (existingCustomers.data.length > 0) {
-        // 2a. Update existing customer
         customer = existingCustomers.data[0];
         await stripe.customers.update(customer.id, {
           description: `Latest Equipment: ${equipment}`,
@@ -41,13 +37,9 @@ export default {
             last_request_date: new Date().toISOString()
           }
         });
-        console.log(`Updated existing customer: ${customer.id}`);
       } else {
-        // 2b. Create new customer
         customer = await stripe.customers.create({
-          name,
-          email,
-          phone,
+          name, email, phone,
           description: `Equipment: ${equipment}`,
           metadata: {
             latest_issue: issue,
@@ -55,10 +47,43 @@ export default {
             first_request_date: new Date().toISOString()
           }
         });
-        console.log(`Created new customer: ${customer.id}`);
       }
 
-      // 3. Return success
+      // 2. Notify Matt via Resend
+      // We use onboarding@resend.dev until the domain is fully verified in Resend
+      const emailRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Peterson Small Engine <onboarding@resend.dev>',
+          to: 'mattssmallenginerep@gmail.com',
+          subject: `🔧 New Lead: ${name} (${equipment})`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #0b1a14;">New Service Request</h2>
+              <p>A new request has been submitted from the website.</p>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Customer:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${name}</td></tr>
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Email:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${email}</td></tr>
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Phone:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${phone}</td></tr>
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Equipment:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${equipment}</td></tr>
+                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Issue:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${issue}</td></tr>
+              </table>
+              <div style="margin-top: 30px;">
+                <a href="https://dashboard.stripe.com/customers/${customer.id}" 
+                   style="background: #d92d20; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                   View in Stripe Dashboard
+                </a>
+              </div>
+            </div>
+          `
+        }),
+      });
+
+      // 3. Return success to frontend
       return new Response(JSON.stringify({ 
         success: true, 
         message: 'Request received! Matt will contact you soon.',
@@ -71,16 +96,10 @@ export default {
       });
 
     } catch (err) {
-      console.error('Stripe Error:', err.message);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Failed to process request. Please try calling instead.' 
-      }), {
+      console.error('Backend Error:', err.message);
+      return new Response(JSON.stringify({ success: false, error: 'Internal Error' }), {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       });
     }
   },

@@ -35,5 +35,7 @@ jobs:
           command: deploy --name=peterson-backend --compatibility-date=2026-05-02
           secrets: |
             STRIPE_SECRET_KEY
+            RESEND_API_KEY
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
