@@ -113,10 +113,14 @@ export default {
                   <p><strong>Equipment:</strong> ${equipment}</p>
                   <p><strong>Issue:</strong> ${issue}</p>
                   
-                  <div style="margin-top: 30px; display: flex; gap: 10px; align-items: center;">
-                    <a href="https://dashboard.stripe.com/customers/${stripeCustomer.id}" 
+                  <div style="margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                    <a href="https://dashboard.stripe.com/quotes/create?customer=${stripeCustomer.id}" 
                        style="background: #d92d20; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">
-                       Billing (Stripe)
+                       + Create Quote (Stripe)
+                    </a>
+                    <a href="https://dashboard.stripe.com/customers/${stripeCustomer.id}" 
+                       style="background: #333; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.8rem;">
+                       Stripe Profile
                     </a>
                     ${scheduleLink}
                   </div>
