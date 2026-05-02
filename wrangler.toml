@@ -1,8 +1,5 @@
-name = "matts-future-company"
+name = "petersons-small-engine-repair"
 pages_build_output_dir = "./"
-
-[site]
-bucket = "./"
 
 [dev]
 port = 8788

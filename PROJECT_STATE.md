@@ -4,21 +4,23 @@
 
 **What changed:**
 * Synced local environment with GitHub repository.
-* Secured credentials by creating `.env` and `.gitignore`.
-* Verified Cloudflare Global API Key and Account Email.
-* Created a **Scoped API Token** (`cfut_...`) with targeted permissions for Pages, Workers, DNS, and Registrar.
-* Logged the Scoped Token and Account ID into `.env` for future automation.
-* Created Cloudflare configuration files (`wrangler.toml`, `_headers`).
+* Secured credentials in `.env` and `.gitignore`.
+* Created **Scoped API Token** (`cfut_...`) for secure infrastructure management.
+* Registered and Activated **`petersonsmallenginerepair.com`** on Cloudflare.
+* Created Cloudflare Pages project **`petersons-small-engine-repair`**.
+* Implemented **GitHub Actions CI/CD** workflow for Direct Deployment to bypass account linkage issues.
+* Updated branding to "Peterson's Small Engine Repair" across all site files.
 
 **Commands run + results:**
-* `curl.exe ...` -> Created scoped token `cfut_wMNL...` using Global Key.
+* `git push` -> Deployed `.github/workflows/deploy.yml` to trigger automated uploads.
+* `curl.exe ...` -> Linked custom domain to Pages project.
 
 **Files touched:**
-* `C:\Users\rpgfi\Documents\Other Code Projects\MattsFutureCompany\.env`
-* `C:\Users\rpgfi\Documents\Other Code Projects\MattsFutureCompany\PROJECT_STATE.md`
-* `C:\Users\rpgfi\Documents\Other Code Projects\MattsFutureCompany\token_policy.json` (created and deleted)
+* `index.html`, `playbook.html` (Branding updates)
+* `.env` (Infrastructure metadata)
+* `.github/workflows/deploy.yml` (CI/CD setup)
 
 **Next 3 actions:**
-* [ ] Connect GitHub repository to Cloudflare Pages (User action).
-* [ ] Purchase `mattspowerequipment.com` via Cloudflare Registrar (User action).
-* [ ] Initialize first Cloudflare Worker for AI Parts Forecasting.
+* [ ] Verify first successful deployment via GitHub Actions tab.
+* [ ] Initialize the Cloudflare Worker for AI Parts Forecasting.
+* [ ] Connect Square Appointments API for real-time scheduling.

@@ -1,0 +1,12 @@
+{
+  "source": {
+    "type": "github",
+    "config": {
+      "owner": "buckwheet",
+      "repo_name": "MattsFutureCompany",
+      "production_branch": "main",
+      "pr_comments_enabled": true,
+      "deployments_enabled": true
+    }
+  }
+}
