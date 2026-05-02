@@ -16,6 +16,41 @@ export default {
     const url = new URL(request.url);
     const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
+    // --- ROUTE: GET /api/photos/:key (Serve Image) ---
+    if (url.pathname.startsWith('/api/photos/')) {
+      const key = url.pathname.replace('/api/photos/', '');
+      const object = await env.PHOTOS.get(key);
+      if (!object) return new Response('Photo Not Found', { status: 404 });
+      
+      const headers = new Headers();
+      object.writeHttpMetadata(headers);
+      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set('etag', object.httpEtag);
+      
+      return new Response(object.body, { headers });
+    }
+
+    // --- ROUTE: POST /api/upload (Upload Photo) ---
+    if (url.pathname === '/api/upload' && request.method === 'POST') {
+      try {
+        const contentType = request.headers.get('content-type') || '';
+        const key = `part_${Date.now()}.jpg`;
+        
+        await env.PHOTOS.put(key, request.body, {
+          httpMetadata: { contentType: 'image/jpeg' }
+        });
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          url: `${url.origin}/api/photos/${key}` 
+        }), {
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+      }
+    }
+
     // --- ROUTE: GET /api/parts (Inventory List) ---
     if (url.pathname === '/api/parts' && request.method === 'GET') {
       try {
@@ -32,7 +67,7 @@ export default {
     if (url.pathname === '/api/parts' && request.method === 'POST') {
       try {
         const part = await request.json();
-        const { name, sku, upc, description, quantity, reorder_point, price } = part;
+        const { name, sku, upc, description, quantity, reorder_point, price, image_url } = part;
 
         // 1. Sync to Stripe first (so we have the ID)
         let stripeProductId = part.stripe_product_id;
@@ -44,6 +79,7 @@ export default {
               currency: 'usd',
               unit_amount: Math.round(price * 100),
             },
+            images: image_url ? [image_url] : [],
             metadata: { sku, upc }
           });
           stripeProductId = product.id;
@@ -51,14 +87,15 @@ export default {
 
         // 2. Save to D1
         await env.DB.prepare(`
-          INSERT INTO parts (name, sku, upc, description, quantity, reorder_point, price, stripe_product_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO parts (name, sku, upc, description, quantity, reorder_point, price, stripe_product_id, image_url)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(sku) DO UPDATE SET
             name=excluded.name,
             quantity=excluded.quantity,
             price=excluded.price,
+            image_url=excluded.image_url,
             updated_at=CURRENT_TIMESTAMP
-        `).bind(name, sku, upc, description, quantity, reorder_point, price, stripeProductId).run();
+        `).bind(name, sku, upc, description, quantity, reorder_point, price, stripeProductId, image_url).run();
 
         return new Response(JSON.stringify({ success: true, stripeProductId }), {
           headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },

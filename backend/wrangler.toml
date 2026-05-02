@@ -9,3 +9,7 @@ compatibility_date = "2026-05-02"
 binding = "DB"
 database_name = "matts-parts-db"
 database_id = "d0f89a7a-2e35-473f-bf17-d1eac22f2349"
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "matts-parts-photos"

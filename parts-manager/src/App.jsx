@@ -45,6 +45,30 @@ function App() {
     }, 100);
   };
 
+  const [uploading, setUploading] = useState(false);
+
+  const handlePhotoCapture = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Binary upload to R2
+      const res = await fetch(`${API_BASE}/api/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'image/jpeg' },
+        body: file
+      });
+      const data = await res.json();
+      if (data.url) {
+        setFormData({ ...formData, image_url: data.url });
+      }
+    } catch (e) {
+      alert('Photo upload failed: ' + e.message);
+    }
+    setUploading(false);
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     try {
@@ -56,7 +80,7 @@ function App() {
       });
       setShowAddModal(false);
       fetchParts();
-      setFormData({ name: '', sku: '', upc: '', price: '', quantity: 1, reorder_point: 2, description: '' });
+      setFormData({ name: '', sku: '', upc: '', price: '', quantity: 1, reorder_point: 2, description: '', image_url: '' });
     } catch (e) {
       alert('Error saving part: ' + e.message);
     }
@@ -112,9 +136,18 @@ function App() {
         ) : (
           parts.map(part => (
             <div key={part.id} className="part-item">
-              <div className="part-info">
-                <h3>{part.name}</h3>
-                <p>SKU: {part.sku}</p>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {part.image_url ? (
+                  <img src={part.image_url} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '40px', height: '40px', background: '#333', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Package size={16} color="#666" />
+                  </div>
+                )}
+                <div className="part-info">
+                  <h3>{part.name}</h3>
+                  <p>SKU: {part.sku}</p>
+                </div>
               </div>
               <div className="part-stock">
                 <span className={`stock-num ${part.quantity <= part.reorder_point ? 'stock-low' : ''}`}>
@@ -146,6 +179,21 @@ function App() {
           <div className="modal">
             <h2 style={{ marginTop: 0 }}>Add New Part</h2>
             <form onSubmit={handleSave}>
+              {/* Photo Upload Section */}
+              <div className="form-group" style={{ textAlign: 'center' }}>
+                {formData.image_url ? (
+                  <div style={{ position: 'relative' }}>
+                    <img src={formData.image_url} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px' }} />
+                    <button type="button" onClick={() => setFormData({...formData, image_url: ''})} style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', borderRadius: '50%', width: '30px', height: '30px' }}>&times;</button>
+                  </div>
+                ) : (
+                  <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+                    <input type="file" accept="image/*" capture="environment" hidden onChange={handlePhotoCapture} />
+                    {uploading ? 'Uploading...' : <><Scan size={18} /> Take Photo</>}
+                  </label>
+                )}
+              </div>
+
               <div className="form-group">
                 <label>Part Name</label>
                 <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Spark Plug RJ19LM" />
