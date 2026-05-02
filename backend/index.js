@@ -49,9 +49,8 @@ export default {
         });
       }
 
-      // 2. Notify Matt via Resend
-      // We use onboarding@resend.dev until the domain is fully verified in Resend
-      const emailRes = await fetch('https://api.resend.com/emails', {
+      // 2. INTERNAL NOTIFICATION (To Matt)
+      await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${env.RESEND_API_KEY}`,
@@ -64,7 +63,6 @@ export default {
           html: `
             <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
               <h2 style="color: #0b1a14;">New Service Request</h2>
-              <p>A new request has been submitted from the website.</p>
               <table style="width: 100%; border-collapse: collapse;">
                 <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Customer:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${name}</td></tr>
                 <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Email:</strong></td><td style="padding: 8px 0; border-bottom: 1px solid #eee;">${email}</td></tr>
@@ -83,7 +81,41 @@ export default {
         }),
       });
 
-      // 3. Return success to frontend
+      // 3. EXTERNAL AUTO-RESPONSE (To Customer)
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Matt Peterson <matt@petersonsmallenginerepair.com>',
+          to: email,
+          subject: `🔧 Request Received: Repairing your ${equipment}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; padding: 30px; color: #333; line-height: 1.6;">
+              <h2 style="color: #0b1a14;">Hi ${name}, I've received your request!</h2>
+              <p>Thanks for reaching out. I'm currently reviewing the details of your <strong>${equipment}</strong> repair and I'll be in touch shortly via phone or email to discuss the next steps.</p>
+              
+              <h3 style="color: #d92d20; margin-top: 30px;">How It Works:</h3>
+              <ul style="padding-left: 20px;">
+                <li style="margin-bottom: 12px;"><strong>Assessment:</strong> I'll contact you to discuss the issue and schedule a pickup or drop-off.</li>
+                <li style="margin-bottom: 12px;"><strong>Secure Estimate:</strong> You will receive a professional <strong>Stripe Quote</strong> via email to approve before any work begins.</li>
+                <li style="margin-bottom: 12px;"><strong>Fast Repair:</strong> Most repairs are completed within 48 hours of assessment.</li>
+                <li style="margin-bottom: 12px;"><strong>Easy Payment:</strong> Once you're satisfied with the work, pay securely on-site via Tap-to-Pay or through a secure link on your phone.</li>
+              </ul>
+
+              <p style="margin-top: 40px; font-size: 0.9rem; color: #666;">
+                Looking forward to getting you back to work!<br>
+                <strong>Matt Peterson</strong><br>
+                Peterson Small Engine Repair
+              </p>
+            </div>
+          `
+        }),
+      });
+
+      // 4. Return success to frontend
       return new Response(JSON.stringify({ 
         success: true, 
         message: 'Request received! Matt will contact you soon.',
