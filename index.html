@@ -384,8 +384,8 @@
     <div class="wrap contact-inner fade-up">
       <div class="contact-header">
         <span class="eyebrow light">Get an Estimate</span>
-        <h2>Request Service</h2>
-        <p>Fill out the form below and I'll get back to you within 24 hours (usually much faster).</p>
+        <h2>Let's get it fixed.</h2>
+        <p>Most repairs are completed within 48 hours of pickup. Fill out the form below to get started.</p>
         
         <div class="contact-card-simple">
           <a href="tel:+16125551234" class="contact-link">
@@ -394,6 +394,9 @@
           <a href="mailto:matt@petersonsmallenginerepair.com" class="contact-link">
             <span class="icon">✉️</span> matt@petersonsmallenginerepair.com
           </a>
+          <div style="margin-top: 20px; color: rgba(255,255,255,0.4); font-size: 0.9rem;">
+            📍 Coon Rapids, MN 55433 — By Appointment
+          </div>
         </div>
       </div>
       
@@ -401,18 +404,18 @@
         <form id="service-request-form" class="service-form">
           <div class="form-row">
             <div class="form-group">
-              <label for="name">Name</label>
-              <input type="text" id="name" name="name" placeholder="John Doe" required>
+              <label for="name">Your Name</label>
+              <input type="text" id="name" name="name" placeholder="Full Name" required>
             </div>
             <div class="form-group">
-              <label for="email">Email</label>
-              <input type="email" id="email" name="email" placeholder="john@example.com" required>
+              <label for="email">Email Address</label>
+              <input type="email" id="email" name="email" placeholder="email@address.com" required>
             </div>
           </div>
           
           <div class="form-row">
             <div class="form-group">
-              <label for="phone">Phone</label>
+              <label for="phone">Phone Number</label>
               <input type="tel" id="phone" name="phone" placeholder="(612) 000-0000" required>
             </div>
             <div class="form-group">
@@ -420,21 +423,21 @@
               <select id="equipment" name="equipment" required>
                 <option value="" disabled selected>Select Equipment</option>
                 <option value="Push Mower">Push Mower</option>
-                <option value="Riding Mower">Riding Mower</option>
-                <option value="Zero-Turn">Zero-Turn</option>
+                <option value="Riding Mower">Riding Mower / Zero-Turn</option>
                 <option value="Snow Blower">Snow Blower</option>
-                <option value="Handheld (Trimmer/Blower)">Handheld (Trimmer/Blower)</option>
-                <option value="Other">Other</option>
+                <option value="Generator">Generator</option>
+                <option value="Handheld (Trimmer/Blower)">Small Engine (Trimmer/Blower)</option>
+                <option value="Other">Other / Industrial</option>
               </select>
             </div>
           </div>
           
           <div class="form-group">
-            <label for="issue">Describe the Issue</label>
-            <textarea id="issue" name="issue" rows="4" placeholder="e.g. Won't start, surging, belt broke..." required></textarea>
+            <label for="issue">How can I help?</label>
+            <textarea id="issue" name="issue" rows="4" placeholder="Describe the issue or service needed..." required></textarea>
           </div>
           
-          <button type="submit" class="btn primary full-width">Send Request</button>
+          <button type="submit" class="btn primary full-width">Submit Request</button>
           <div id="form-status" class="form-status"></div>
         </form>
       </div>
