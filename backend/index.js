@@ -27,6 +27,35 @@ export default {
       });
     }
 
+    // --- ROUTE: POST /api/webhooks/stripe (Auto-Inventory Deduction) ---
+    if (url.pathname === '/api/webhooks/stripe' && request.method === 'POST') {
+      try {
+        const event = await request.json();
+        
+        // Handle successful payment (Invoice or Checkout)
+        if (event.type === 'invoice.paid' || event.type === 'checkout.session.completed') {
+          const session = event.data.object;
+          
+          // Get line items (for checkout sessions)
+          const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+          
+          for (const item of lineItems.data) {
+            // Find part by stripe_product_id
+            await env.DB.prepare(`
+              UPDATE parts 
+              SET quantity = MAX(0, quantity - ?) 
+              WHERE stripe_product_id = ?
+            `).bind(item.quantity, item.price.product).run();
+          }
+        }
+        
+        return corsResponse({ received: true });
+      } catch (e) {
+        console.error('Webhook Error:', e.message);
+        return corsResponse({ error: e.message }, 500);
+      }
+    }
+
     // --- ROUTE: GET /api/admin/status (System Pulse) ---
     if (url.pathname === '/api/admin/status' && request.method === 'GET') {
       try {
