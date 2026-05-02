@@ -59,7 +59,7 @@ export default {
         },
         body: JSON.stringify({
           from: 'Peterson Small Engine <onboarding@resend.dev>',
-          to: 'mattssmallenginerep@gmail.com',
+          to: 'matt@petersonsmallenginerepair.com',
           subject: `🔧 New Lead: ${name} (${equipment})`,
           html: `
             <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
