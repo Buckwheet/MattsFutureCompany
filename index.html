@@ -382,27 +382,61 @@
   <!-- Contact -->
   <section id="contact">
     <div class="wrap contact-inner fade-up">
-      <div>
-        <span class="eyebrow light">Contact Us</span>
-        <h2>Let's get it fixed.</h2>
-        <p>Call, text, or email for a free estimate or to schedule service. I pride myself on fast response times.</p>
+      <div class="contact-header">
+        <span class="eyebrow light">Get an Estimate</span>
+        <h2>Request Service</h2>
+        <p>Fill out the form below and I'll get back to you within 24 hours (usually much faster).</p>
+        
+        <div class="contact-card-simple">
+          <a href="tel:+16125551234" class="contact-link">
+            <span class="icon">📞</span> (612) 555-1234
+          </a>
+          <a href="mailto:matt@petersonsmallenginerepair.com" class="contact-link">
+            <span class="icon">✉️</span> matt@petersonsmallenginerepair.com
+          </a>
+        </div>
       </div>
       
-      <div class="contact-card">
-        <a href="tel:+16125551234" class="contact-link">
-          <span class="icon">📞</span>
-          (612) 555-1234
-        </a>
-        <a href="mailto:matt@petersonsmallenginerepair.com" class="contact-link">
-          <span class="icon">✉️</span>
-          matt@petersonsmallenginerepair.com
-        </a>
-        
-        <div class="contact-details-text">
-          <p><span class="icon" style="font-size: 1.2rem;">📍</span> Coon Rapids, MN 55433 — By Appointment</p>
-          <p><span class="icon" style="font-size: 1.2rem;">🕒</span> Mon–Fri: 8am – 6pm <br> Sat: 9am – 3pm</p>
-          <p class="fine" style="margin-top: 24px; color: rgba(255,255,255,0.4);">* Placeholder info — pending update with Matt's direct contact details</p>
-        </div>
+      <div class="contact-form-container">
+        <form id="service-request-form" class="service-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">Name</label>
+              <input type="text" id="name" name="name" placeholder="John Doe" required>
+            </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" placeholder="john@example.com" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="phone">Phone</label>
+              <input type="tel" id="phone" name="phone" placeholder="(612) 000-0000" required>
+            </div>
+            <div class="form-group">
+              <label for="equipment">Equipment Type</label>
+              <select id="equipment" name="equipment" required>
+                <option value="" disabled selected>Select Equipment</option>
+                <option value="Push Mower">Push Mower</option>
+                <option value="Riding Mower">Riding Mower</option>
+                <option value="Zero-Turn">Zero-Turn</option>
+                <option value="Snow Blower">Snow Blower</option>
+                <option value="Handheld (Trimmer/Blower)">Handheld (Trimmer/Blower)</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="issue">Describe the Issue</label>
+            <textarea id="issue" name="issue" rows="4" placeholder="e.g. Won't start, surging, belt broke..." required></textarea>
+          </div>
+          
+          <button type="submit" class="btn primary full-width">Send Request</button>
+          <div id="form-status" class="form-status"></div>
+        </form>
       </div>
     </div>
   </section>
@@ -534,7 +568,51 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { passive: true });
 
   startSlideshow();
-});
+// Form Submission Handling
+const serviceForm = document.getElementById('service-request-form');
+const formStatus = document.getElementById('form-status');
+
+if (serviceForm) {
+  serviceForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // UI Feedback
+    const btn = serviceForm.querySelector('button');
+    const originalBtnText = btn.innerText;
+    btn.innerText = 'Sending...';
+    btn.disabled = true;
+    formStatus.className = 'form-status';
+    formStatus.innerText = '';
+    
+    const formData = new FormData(serviceForm);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+      // Replace this URL with your actual Cloudflare Worker URL after deployment
+      const response = await fetch('https://peterson-backend.buckwheet.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        formStatus.classList.add('success');
+        formStatus.innerText = result.message || 'Success! I will contact you soon.';
+        serviceForm.reset();
+      } else {
+        throw new Error(result.error || 'Something went wrong.');
+      }
+    } catch (err) {
+      formStatus.classList.add('error');
+      formStatus.innerText = err.message || 'Failed to send request. Please try calling instead.';
+    } finally {
+      btn.innerText = originalBtnText;
+      btn.disabled = false;
+    }
+  });
+}
 </script>
 
 </body>

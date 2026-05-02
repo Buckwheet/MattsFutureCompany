@@ -1,0 +1,6 @@
+name = "peterson-backend"
+main = "index.js"
+compatibility_date = "2026-05-02"
+
+[vars]
+# No sensitive keys here, use secrets!

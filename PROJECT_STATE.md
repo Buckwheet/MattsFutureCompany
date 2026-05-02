@@ -8,12 +8,13 @@
 * Created **Scoped API Token** (`cfut_...`) for secure infrastructure management.
 * Registered and Activated **`petersonsmallenginerepair.com`** on Cloudflare.
 * Created Cloudflare Pages project **`petersons-small-engine-repair`**.
-* Implemented **GitHub Actions CI/CD** workflow for Direct Deployment to bypass account linkage issues.
-* Updated branding to "Peterson's Small Engine Repair" across all site files.
+* Implemented **GitHub Actions CI/CD** workflow for Direct Deployment.
+* Updated branding to "Peterson Small Engine Repair" across all site files.
+* Configured **Cloudflare Email Forwarding**: `matt@petersonsmallenginerepair.com` -> `mattssmallenginerep@gmail.com`.
 
 **Commands run + results:**
-* `git push` -> Deployed `.github/workflows/deploy.yml` to trigger automated uploads.
-* `curl.exe ...` -> Linked custom domain to Pages project.
+* `git push` -> Deployed site changes via GitHub Actions.
+* `curl.exe ...` -> Configured email routing rules and DNS.
 
 **Files touched:**
 * `index.html`, `playbook.html` (Branding updates)
@@ -21,6 +22,6 @@
 * `.github/workflows/deploy.yml` (CI/CD setup)
 
 **Next 3 actions:**
-* [ ] Verify first successful deployment via GitHub Actions tab.
+* [ ] Sign up for Stripe/Resend using `matt@petersonsmallenginerepair.com`.
 * [ ] Initialize the Cloudflare Worker for AI Parts Forecasting.
 * [ ] Connect Square Appointments API for real-time scheduling.
