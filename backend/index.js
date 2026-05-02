@@ -93,7 +93,7 @@ export default {
       if (env.RESEND_API_KEY) {
         try {
           const scheduleLink = squareCustomerId !== "pending" 
-            ? `<a href="https://squareupsm.com/dashboard/customers/directory/customer/${squareCustomerId}" style="background: #006aff; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">Schedule (Square)</a>`
+            ? `<a href="https://squareup.com/dashboard/customers/directory/customer/${squareCustomerId}" style="background: #006aff; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">Schedule (Square)</a>`
             : `<span style="color: #666; font-size: 0.8rem;">(Square Sync Disabled)</span>`;
 
           await fetch('https://api.resend.com/emails', {
