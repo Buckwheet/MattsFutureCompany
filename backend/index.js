@@ -58,7 +58,7 @@ export default {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Peterson Small Engine <onboarding@resend.dev>',
+          from: 'Peterson Leads <leads@petersonsmallenginerepair.com>',
           to: 'matt@petersonsmallenginerepair.com',
           subject: `🔧 New Lead: ${name} (${equipment})`,
           html: `
