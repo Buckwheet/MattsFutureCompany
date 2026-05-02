@@ -32,8 +32,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: backend
-          # We only list the MANDATORY Stripe key here. 
-          # The others are handled gracefully by the code if they are missing.
           command: deploy --name=peterson-backend --compatibility-date=2026-05-02
           secrets: |
             STRIPE_SECRET_KEY
