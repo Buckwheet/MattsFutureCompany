@@ -1,0 +1,19 @@
+{
+  "name": "petersons-small-engine-repair",
+  "production_branch": "main",
+  "build_config": {
+    "build_command": "",
+    "destination_dir": "",
+    "root_dir": ""
+  },
+  "source": {
+    "type": "github",
+    "config": {
+      "owner": "buckwheet",
+      "repo_name": "MattsFutureCompany",
+      "production_branch": "main",
+      "pr_comments_enabled": true,
+      "deployments_enabled": true
+    }
+  }
+}

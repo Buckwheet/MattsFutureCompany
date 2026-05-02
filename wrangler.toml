@@ -1,0 +1,8 @@
+name = "matts-future-company"
+pages_build_output_dir = "./"
+
+[site]
+bucket = "./"
+
+[dev]
+port = 8788
