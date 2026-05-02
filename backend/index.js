@@ -2,6 +2,20 @@ import Stripe from 'stripe';
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+    const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+
+    // Helper for CORS responses
+    const corsResponse = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      }
+    });
+
     // CORS Preflight
     if (request.method === 'OPTIONS') {
       return new Response(null, {
@@ -13,13 +27,37 @@ export default {
       });
     }
 
-    const url = new URL(request.url);
-    const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+    // --- ROUTE: GET /api/admin/status (System Pulse) ---
+    if (url.pathname === '/api/admin/status' && request.method === 'GET') {
+      try {
+        const { results: parts } = await env.DB.prepare("SELECT * FROM parts").all();
+        const lowStock = parts.filter(p => p.quantity <= p.reorder_point).length;
+        const totalValue = parts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+
+        return corsResponse({
+          status: "OPERATIONAL",
+          infrastructure: {
+            database: "CONNECTED",
+            storage: "READY",
+            stripe: env.STRIPE_SECRET_KEY ? "CONFIGURED" : "MISSING",
+            square: env.SQUARE_ACCESS_TOKEN ? "CONFIGURED" : "MISSING",
+            resend: env.RESEND_API_KEY ? "CONFIGURED" : "MISSING"
+          },
+          inventory: {
+            total_items: parts.length,
+            low_stock_count: lowStock,
+            estimated_value: totalValue.toFixed(2)
+          }
+        });
+      } catch (e) {
+        return corsResponse({ status: "ERROR", error: e.message }, 500);
+      }
+    }
 
     // --- ROUTE: GET /api/lookup?upc=... (Auto-Identify) ---
     if (url.pathname === '/api/lookup' && request.method === 'GET') {
       const upc = url.searchParams.get('upc');
-      if (!upc) return new Response('UPC Required', { status: 400 });
+      if (!upc) return corsResponse({ error: 'UPC Required' }, 400);
       
       try {
         const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`);
@@ -27,19 +65,15 @@ export default {
         
         if (data.items && data.items.length > 0) {
           const item = data.items[0];
-          return new Response(JSON.stringify({
+          return corsResponse({
             name: item.title,
             description: item.description,
             success: true
-          }), {
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
           });
         }
-        return new Response(JSON.stringify({ success: false }), {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
+        return corsResponse({ success: false });
       } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+        return corsResponse({ error: e.message }, 500);
       }
     }
 
@@ -47,7 +81,7 @@ export default {
     if (url.pathname.startsWith('/api/photos/')) {
       const key = url.pathname.replace('/api/photos/', '');
       const object = await env.PHOTOS.get(key);
-      if (!object) return new Response('Photo Not Found', { status: 404 });
+      if (!object) return new Response('Photo Not Found', { status: 404, headers: { 'Access-Control-Allow-Origin': '*' } });
       
       const headers = new Headers();
       object.writeHttpMetadata(headers);
@@ -60,21 +94,13 @@ export default {
     // --- ROUTE: POST /api/upload (Upload Photo) ---
     if (url.pathname === '/api/upload' && request.method === 'POST') {
       try {
-        const contentType = request.headers.get('content-type') || '';
         const key = `part_${Date.now()}.jpg`;
-        
         await env.PHOTOS.put(key, request.body, {
           httpMetadata: { contentType: 'image/jpeg' }
         });
-
-        return new Response(JSON.stringify({ 
-          success: true, 
-          url: `${url.origin}/api/photos/${key}` 
-        }), {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
+        return corsResponse({ success: true, url: `${url.origin}/api/photos/${key}` });
       } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+        return corsResponse({ error: e.message }, 500);
       }
     }
 
@@ -82,11 +108,20 @@ export default {
     if (url.pathname === '/api/parts' && request.method === 'GET') {
       try {
         const { results } = await env.DB.prepare("SELECT * FROM parts ORDER BY name ASC").all();
-        return new Response(JSON.stringify(results), {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
+        return corsResponse(results);
       } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+        return corsResponse({ error: e.message }, 500);
+      }
+    }
+
+    // --- ROUTE: DELETE /api/parts/:id (Remove Part) ---
+    if (url.pathname.startsWith('/api/parts/') && request.method === 'DELETE') {
+      try {
+        const id = url.pathname.split('/').pop();
+        await env.DB.prepare("DELETE FROM parts WHERE id = ?").bind(id).run();
+        return corsResponse({ success: true });
+      } catch (e) {
+        return corsResponse({ error: e.message }, 500);
       }
     }
 
@@ -122,13 +157,21 @@ export default {
             price=excluded.price,
             image_url=excluded.image_url,
             updated_at=CURRENT_TIMESTAMP
-        `).bind(name, sku, upc, description, quantity, reorder_point, price, stripeProductId, image_url).run();
+        `).bind(
+          name || '', 
+          sku || '', 
+          upc || '', 
+          description || '', 
+          quantity || 0, 
+          reorder_point || 0, 
+          price || 0, 
+          stripeProductId || '', 
+          image_url || ''
+        ).run();
 
-        return new Response(JSON.stringify({ success: true, stripeProductId }), {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
+        return corsResponse({ success: true, stripeProductId });
       } catch (e) {
-        return new Response(JSON.stringify({ error: e.message }), { status: 500 });
+        return corsResponse({ error: e.message }, 500);
       }
     }
 
@@ -277,18 +320,14 @@ export default {
           }
         }
 
-        return new Response(JSON.stringify({ success: true, message: 'Request received!' }), {
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
+        return corsResponse({ success: true, message: 'Request received!' });
 
       } catch (err) {
-        console.error('Backend Error:', err.message);
-        return new Response(JSON.stringify({ success: false, error: 'Internal Error' }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        });
+        return corsResponse({ error: err.message }, 500);
       }
     }
+
+    return new Response('Not Found', { status: 404, headers: { 'Access-Control-Allow-Origin': '*' } });
 
     return new Response('Not Found', { status: 404 });
   },

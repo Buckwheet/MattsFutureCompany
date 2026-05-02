@@ -12,7 +12,7 @@ function App() {
   const [showScanner, setShowScanner] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', sku: '', upc: '', price: '', quantity: 1, reorder_point: 2, description: ''
+    name: '', sku: '', upc: '', price: '', quantity: 1, reorder_point: 2, description: '', image_url: ''
   });
 
   useEffect(() => {
@@ -83,10 +83,38 @@ function App() {
     setUploading(false);
   };
 
+  const handleAdjustQty = async (part, delta) => {
+    const newQty = Math.max(0, part.quantity + delta);
+    try {
+      await axios.post(`${API_BASE}/api/parts`, {
+        ...part,
+        quantity: newQty
+      });
+      fetchParts();
+    } catch (e) {
+      alert('Adjustment failed: ' + e.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this part?')) return;
+    try {
+      await axios.delete(`${API_BASE}/api/parts/${id}`);
+      fetchParts();
+    } catch (e) {
+      alert('Delete failed: ' + e.message);
+    }
+  };
+
+  const handleEdit = (part) => {
+    setFormData(part);
+    setShowAddModal(true);
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE}/api/parts`, {
+      const res = await axios.post(`${API_BASE}/api/parts`, {
         ...formData,
         price: parseFloat(formData.price),
         quantity: parseInt(formData.quantity),
@@ -96,14 +124,16 @@ function App() {
       fetchParts();
       setFormData({ name: '', sku: '', upc: '', price: '', quantity: 1, reorder_point: 2, description: '', image_url: '' });
     } catch (e) {
-      alert('Error saving part: ' + e.message);
+      console.error('Save error details:', e);
+      const msg = e.response?.data?.error || e.message;
+      alert('Error saving part: ' + msg);
     }
   };
 
   return (
     <div className="app-container">
       <header>
-        <div>
+        <div onClick={() => window.location.reload()} style={{ cursor: 'pointer' }}>
           <h1>Parts Manager</h1>
           <span className="badge">LIVE SYNC</span>
         </div>
@@ -142,32 +172,47 @@ function App() {
 
       {/* Inventory List */}
       <div className="part-list">
-        <h2>Inventory</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>Inventory</h2>
+          <button className="btn" style={{ width: 'auto', background: 'transparent', color: 'var(--muted)', fontSize: '0.8rem' }} onClick={fetchParts}>Refresh</button>
+        </div>
+        
         {loading ? (
           <p>Loading...</p>
         ) : parts.length === 0 ? (
           <p style={{ color: 'var(--muted)', textAlign: 'center' }}>No parts in inventory yet.</p>
         ) : (
           parts.map(part => (
-            <div key={part.id} className="part-item">
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div key={part.id} className="part-item" style={{ padding: '15px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1 }} onClick={() => handleEdit(part)}>
                 {part.image_url ? (
-                  <img src={part.image_url} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />
+                  <img src={part.image_url} style={{ width: '50px', height: '50px', borderRadius: '4px', objectFit: 'cover' }} />
                 ) : (
-                  <div style={{ width: '40px', height: '40px', background: '#333', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Package size={16} color="#666" />
+                  <div style={{ width: '50px', height: '50px', background: '#333', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Package size={20} color="#666" />
                   </div>
                 )}
-                <div className="part-info">
-                  <h3>{part.name}</h3>
-                  <p>SKU: {part.sku}</p>
+                <div className="part-info" style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: '1.1rem' }}>{part.name}</h3>
+                  <p style={{ margin: '2px 0' }}>SKU: {part.sku}</p>
+                  <p style={{ fontWeight: 'bold', color: '#fff' }}>${part.price.toFixed(2)}</p>
                 </div>
               </div>
-              <div className="part-stock">
-                <span className={`stock-num ${part.quantity <= part.reorder_point ? 'stock-low' : ''}`}>
-                  {part.quantity}
-                </span>
-                <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--muted)' }}>in stock</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#000', padding: '5px', borderRadius: '8px' }}>
+                  <button className="btn" style={{ width: '30px', height: '30px', padding: 0 }} onClick={() => handleAdjustQty(part, -1)}>-</button>
+                  <span className={`stock-num ${part.quantity <= part.reorder_point ? 'stock-low' : ''}`} style={{ minWidth: '20px', textAlign: 'center' }}>
+                    {part.quantity}
+                  </span>
+                  <button className="btn" style={{ width: '30px', height: '30px', padding: 0 }} onClick={() => handleAdjustQty(part, 1)}>+</button>
+                </div>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleDelete(part.id); }}
+                  style={{ background: 'transparent', border: 'none', color: '#555', padding: '5px' }}
+                >
+                  <Plus style={{ transform: 'rotate(45deg)' }} size={16} />
+                </button>
               </div>
             </div>
           ))
