@@ -12,7 +12,9 @@
 * **[NEW]** Implemented **Parts Management System** with **D1 SQL Database** and **R2 Storage**.
 * **[NEW]** Built **Mobile Dashboard** at `inventory.petersonsmallenginerepair.com` with **UPC Scanning**.
 * **[NEW]** Secured inventory with **Cloudflare Access (Google OAuth)**.
-* **[NEW] Updated business phone number to real number: 763-328-9259 across the website.**
+* **[NEW] Updated business phone number to real number: 763-328-9259.**
+* **[NEW] Added delivery fee note: "* Reduced rate may apply within 5 miles."**
+* **[NEW] Replaced outdated logo with new "Peterson Small Engine Repair" branding.**
 
 **Commands run + results:**
 * `npx wrangler d1 create` -> Successfully initialized Parts Database.
@@ -22,10 +24,12 @@
 **Files touched:**
 * `index.html`, `backend/index.js`, `backend/wrangler.toml`
 * `parts-manager/src/App.jsx`, `parts-manager/src/App.css`
-* `index.html` (Updated phone number)
+* `index.html` (Updated phone, delivery fee note)
+* `images/logo.png` (Replaced with new logo)
 
 **Next 3 actions:**
 * [ ] Monitor first real lead through the new system.
 * [ ] Add "Low Stock" SMS notifications to Matt's phone.
 * [ ] Build the "Parts Forecasting" daily report using upcoming Square Appointments.
+
 
