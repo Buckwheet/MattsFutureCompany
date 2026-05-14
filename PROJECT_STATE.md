@@ -15,7 +15,8 @@
 * **[NEW] Updated business phone number to 763-328-9259.**
 * **[NEW] Added delivery fee note: "* Reduced rate may apply within 5 miles."**
 * **[NEW] Replaced outdated logo with new "Peterson Small Engine Repair" branding.**
-* **[NEW] Updated business zip code to 55448 and implemented cache busting (v1.0.3).**
+* **[NEW] Updated business zip code to 55448 and implemented cache busting (v1.0.4).**
+* **[NEW] Implemented high-impact SEO optimizations (H1 tags, keyword-rich subheadings, and service area footer).**
 
 **Commands run + results:**
 * `npx wrangler d1 create` -> Successfully initialized Parts Database.
