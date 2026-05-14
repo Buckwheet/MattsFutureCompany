@@ -12,9 +12,10 @@
 * **[NEW]** Implemented **Parts Management System** with **D1 SQL Database** and **R2 Storage**.
 * **[NEW]** Built **Mobile Dashboard** at `inventory.petersonsmallenginerepair.com` with **UPC Scanning**.
 * **[NEW]** Secured inventory with **Cloudflare Access (Google OAuth)**.
-* **[NEW] Updated business phone number to real number: 763-328-9259.**
+* **[NEW] Updated business phone number to 763-328-9259.**
 * **[NEW] Added delivery fee note: "* Reduced rate may apply within 5 miles."**
 * **[NEW] Replaced outdated logo with new "Peterson Small Engine Repair" branding.**
+* **[NEW] Updated business zip code to 55448 and implemented cache busting (v1.0.3).**
 
 **Commands run + results:**
 * `npx wrangler d1 create` -> Successfully initialized Parts Database.
