@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peterson Small Engine Repair - Modern Experience Staging</title>
+  <meta name="description" content="Staging preview of the modern rebuild for Peterson Small Engine Repair. Complete with interactive estimator, modern typography, and optimized CRO funnels.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Premium Sticky Navigation -->
+  <nav class="nav-glass">
+    <div class="wrap nav-inner">
+      <a href="#" class="logo">
+        <div class="logo-icon-wrapper">
+          <img src="../images/logo.png" alt="Peterson Logo" class="logo-img">
+        </div>
+        <div class="logo-meta">
+          <span class="logo-text">PETERSON</span>
+          <span class="logo-sub">SMALL ENGINE REPAIR</span>
+        </div>
+      </a>
+      
+      <button class="menu-btn" aria-label="Toggle Navigation Menu">
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+      </button>
+
+      <div class="nav-links">
+        <a href="#features">Why Peterson</a>
+        <a href="#services">Our Services</a>
+        <a href="#estimator">Cost Estimator</a>
+        <a href="#reviews">Testimonials</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact" class="btn-nav-cta">Get Free Quote</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Split Hero Section -->
+    <header class="hero-section">
+      <div class="wrap hero-grid">
+        <!-- Hero Text content -->
+        <div class="hero-content">
+          <div class="badge-new">
+            <span class="badge-dot"></span>
+            PROPOSED REDESIGN PREVIEW
+          </div>
+          <h1>Fast, Local Engine Repairs <span class="text-gradient">You Can Trust.</span></h1>
+          <p>Get riding mowers, zero-turns, snow blowers, and outdoor power gear running like new. Proudly serving Coon Rapids, Blaine, Andover, and the North Metro with honest rates and zero mystery fees.</p>
+          
+          <div class="hero-trust-bullets">
+            <div class="bullet-item">
+              <span class="bullet-check">✓</span>
+              <span><strong>Free</strong> Diagnostic & Estimate</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-check">✓</span>
+              <span>Flat <strong>$65/hr</strong> Labor Rate</span>
+            </div>
+            <div class="bullet-item">
+              <span class="bullet-check">✓</span>
+              <span>Pickup & Delivery Available</span>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <a href="#contact" class="btn btn-primary">Schedule A Repair</a>
+            <a href="tel:+17633289259" class="btn btn-secondary-outline">
+              <span class="phone-icon">📞</span> (763) 328-9259
+            </a>
+          </div>
+          
+          <!-- Rating badge -->
+          <div class="rating-badge-container">
+            <div class="rating-stars">★★★★★</div>
+            <div class="rating-text">Over <strong>50+ Five-Star Repairs</strong> in the North Metro</div>
+          </div>
+        </div>
+
+        <!-- Interactive Cost Estimator Widget -->
+        <div class="hero-widget-container" id="estimator">
+          <div class="estimator-card">
+            <div class="card-glow"></div>
+            <div class="estimator-header">
+              <h3>Interactive Cost Estimator</h3>
+              <p>Select your equipment and issue for a customized ballpark quote.</p>
+            </div>
+
+            <form class="estimator-form">
+              <div class="form-group-widget">
+                <label for="widget-equip">1. Select Equipment</label>
+                <select id="widget-equip" class="select-widget">
+                  <option value="push-mower">Walk-Behind Mower (Push)</option>
+                  <option value="riding-mower" selected>Riding Mower / Zero-Turn</option>
+                  <option value="snow-blower">Snow Blower (Single/2-Stage)</option>
+                  <option value="generator">Portable Generator</option>
+                  <option value="handheld">2-Stroke Gear (Trimmer, Chainsaw)</option>
+                </select>
+              </div>
+
+              <div class="form-group-widget">
+                <label for="widget-issue">2. What's the Issue?</label>
+                <select id="widget-issue" class="select-widget">
+                  <option value="tuneup" selected>Full Seasonal Tune-Up</option>
+                  <option value="nostart">Won't Start (Carburetor Rebuild)</option>
+                  <option value="belt">Belt / Deck Cable Replacement</option>
+                  <option value="blades">Blade/Chain Sharpening & Balance</option>
+                  <option value="oil">Basic Service (Oil, Filter, Spark Plug)</option>
+                </select>
+              </div>
+
+              <!-- Pickup & Delivery Checkbox -->
+              <div class="form-group-widget checkbox-widget">
+                <label class="toggle-container">
+                  <input type="checkbox" id="widget-delivery" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Include Pickup & Delivery?</span>
+                </label>
+              </div>
+
+              <!-- Distance slider (only shows when delivery checked) -->
+              <div class="form-group-widget distance-widget" id="distance-group">
+                <div class="distance-header">
+                  <label for="widget-distance">Roundtrip Distance</label>
+                  <span id="distance-value">6 Miles</span>
+                </div>
+                <input type="range" id="widget-distance" min="1" max="30" value="6" class="range-slider">
+                <span class="distance-note">* First 5 miles may qualify for a reduced rate.</span>
+              </div>
+
+              <!-- Live Estimate Results Card -->
+              <div class="estimator-results">
+                <div class="result-row">
+                  <span>Diagnostic Fee</span>
+                  <span class="value-free">FREE</span>
+                </div>
+                <div class="result-row">
+                  <span>Estimated Labor</span>
+                  <span id="est-labor" class="value">$89.00</span>
+                </div>
+                <div class="result-row" id="result-delivery-row">
+                  <span>Pickup & Return</span>
+                  <span id="est-delivery" class="value">$12.00</span>
+                </div>
+                <div class="result-divider"></div>
+                <div class="result-row total-row">
+                  <span>Total Ballpark</span>
+                  <span id="est-total" class="value-total">$101.00</span>
+                </div>
+                <div class="result-row timeline-row">
+                  <span>Target Turnaround</span>
+                  <span id="est-time" class="value-time">2–4 Days</span>
+                </div>
+              </div>
+
+              <a href="#contact" class="btn btn-widget-cta" id="btn-apply-estimate">Book This Service</a>
+            </form>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Value Propositions (Modern features) -->
+    <section id="features" class="features-section">
+      <div class="wrap">
+        <div class="section-header text-center">
+          <span class="eyebrow">The Peterson Advantage</span>
+          <h2>Repairing equipment with absolute clarity.</h2>
+          <p>No generic drop-offs or surprise invoices. Here is how we build trust with every customer.</p>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <h3>100% Free Diagnostics</h3>
+            <p>I examine your equipment and provide an honest estimate. If it's not worth repairing, I tell you immediately.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🛡️</div>
+            <h3>30-Day Labor Warranty</h3>
+            <p>Every single repair is backed by a 30-day warranty. If the exact same issue returns, I fix it for free.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">📱</div>
+            <h3>Direct SMS Updates</h3>
+            <p>Text direct with the mechanic. Send photos of the problem and get real-time progress photo updates.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">💳</div>
+            <h3>Tap-To-Pay & Online Invoices</h3>
+            <p>Pay securely at your door using credit card, Apple Pay, or online billing links powered by Stripe.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Services Grid Redesign -->
+    <section id="services" class="services-section">
+      <div class="wrap">
+        <div class="section-header">
+          <span class="eyebrow">Services</span>
+          <h2>What we get back to work.</h2>
+        </div>
+
+        <div class="services-modern-grid">
+          <!-- Push Mower Card -->
+          <div class="service-modern-card" style="background-image: linear-gradient(to bottom, rgba(5,12,9,0.4), rgba(5,12,9,0.9)), url('../images/mower.png');">
+            <div class="card-content">
+              <h3>Walk-Behind Mowers</h3>
+              <p>Tune-ups, blade sharpening, carburetor cleans, and cable adjustments for push & self-propelled mowers.</p>
+              <span class="card-price">Tune-ups from $79</span>
+            </div>
+          </div>
+
+          <!-- Riding Mower Card -->
+          <div class="service-modern-card" style="background-image: linear-gradient(to bottom, rgba(5,12,9,0.4), rgba(5,12,9,0.9)), url('../images/spring.png');">
+            <div class="card-content">
+              <h3>Riding Mowers & Zero-Turns</h3>
+              <p>Deck belt swaps, spindle replacements, engine diagnostics, oil service, and battery testing.</p>
+              <span class="card-price">Tune-ups from $149</span>
+            </div>
+          </div>
+
+          <!-- Snowblower Card -->
+          <div class="service-modern-card" style="background-image: linear-gradient(to bottom, rgba(5,12,9,0.4), rgba(5,12,9,0.9)), url('../images/snow.png');">
+            <div class="card-content">
+              <h3>Snow Blowers</h3>
+              <p>Auger belt adjustments, shear pin installations, carburetor cleaning, and tire traction service.</p>
+              <span class="card-price">Diagnostics: FREE</span>
+            </div>
+          </div>
+
+          <!-- Handheld Card -->
+          <div class="service-modern-card" style="background-image: linear-gradient(to bottom, rgba(5,12,9,0.4), rgba(5,12,9,0.9)), url('../images/chainsaw.png');">
+            <div class="card-content">
+              <h3>Handheld Power Gear</h3>
+              <p>Tune-ups, chain sharpening, fuel line rebuilds for trimmers, chainsaws, and leaf blowers.</p>
+              <span class="card-price">Repairs from $45</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="reviews" class="reviews-section">
+      <div class="wrap">
+        <div class="section-header text-center">
+          <span class="eyebrow">Real Reviews</span>
+          <h2>Loved by neighbors.</h2>
+          <p>Read what people in your local neighborhood say about our work.</p>
+        </div>
+
+        <div class="reviews-modern-grid">
+          <div class="review-modern-card">
+            <div class="review-stars">★★★★★</div>
+            <p>"My riding mower wouldn't start after sitting all winter. Matt had it running in two days and the price was way less than I expected. Honest guy, great work."</p>
+            <div class="review-author">
+              <div class="author-avatar">DR</div>
+              <div class="author-info">
+                <h4>Dave R.</h4>
+                <span>Coon Rapids, MN</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="review-modern-card">
+            <div class="review-stars">★★★★★</div>
+            <p>"I called three shops before finding Matt. He was the only one who could get to my snow blower before the next storm. Fixed it same day. Lifesaver!"</p>
+            <div class="review-author">
+              <div class="author-avatar">SK</div>
+              <div class="author-info">
+                <h4>Sarah K.</h4>
+                <span>Blaine, MN</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="review-modern-card">
+            <div class="review-stars">★★★★★</div>
+            <p>"Matt picked up my Gravely zero-turn, diagnosed a bad carburetor, gave me a fair quote, and had it back to me in 4 days. Will absolutely use him again."</p>
+            <div class="review-author">
+              <div class="author-avatar">TH</div>
+              <div class="author-info">
+                <h4>Tom H.</h4>
+                <span>Andover, MN</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="faq-section">
+      <div class="wrap">
+        <div class="section-header text-center">
+          <span class="eyebrow">FAQ</span>
+          <h2>Frequently Asked Questions</h2>
+        </div>
+
+        <div class="faq-modern-container">
+          <div class="faq-modern-item">
+            <details>
+              <summary>How long does a typical repair take? <span class="faq-icon"></span></summary>
+              <p>Most standard repairs and diagnostics are completed in 3–5 business days. Minor services like tune-ups, oil changes, and blade sharpening are often finished same-day or next-day depending on the current schedule.</p>
+            </details>
+          </div>
+          <div class="faq-modern-item">
+            <details>
+              <summary>Do I need an appointment? <span class="faq-icon"></span></summary>
+              <p>Please call or text first so I know you're coming and can ensure I'm at the shop, but my schedule is flexible. We'll find a drop-off time that works for you.</p>
+            </details>
+          </div>
+          <div class="faq-modern-item">
+            <details>
+              <summary>How does pickup & delivery work? <span class="faq-icon"></span></summary>
+              <p>I will come to your home with a truck and trailer, safely load your equipment, repair it at my shop, and deliver it back to you. The fee is simple: $2.00 per mile driven (covering every mile the vehicle is on the road for your job). Reduced rates may apply within 5 miles.</p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Booking Form Section -->
+    <section id="contact" class="contact-section">
+      <div class="wrap contact-container">
+        <div class="contact-info-panel">
+          <span class="eyebrow light">Book A Service</span>
+          <h2>Get your engine running right.</h2>
+          <p>Fill out this form, and I will text or call you within 2 hours to confirm your diagnosis details and booking time.</p>
+
+          <div class="contact-shortcut-cards">
+            <a href="tel:+17633289259" class="shortcut-card">
+              <span class="icon">📞</span>
+              <div>
+                <strong>Call or Text</strong>
+                <span>(763) 328-9259</span>
+              </div>
+            </a>
+
+            <div class="shortcut-card">
+              <span class="icon">📍</span>
+              <div>
+                <strong>Shop Address</strong>
+                <span>Coon Rapids, MN 55448 (By Appt)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-form-panel">
+          <form id="staging-service-form" class="staging-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="c-name">Full Name</label>
+                <input type="text" id="c-name" required placeholder="John Doe">
+              </div>
+              <div class="form-group">
+                <label for="c-email">Email Address</label>
+                <input type="email" id="c-email" required placeholder="john@example.com">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="c-phone">Phone Number</label>
+                <input type="tel" id="c-phone" required placeholder="(763) 328-9259">
+              </div>
+              <div class="form-group">
+                <label for="c-equip">Equipment Type</label>
+                <select id="c-equip" required>
+                  <option value="push-mower">Push Lawn Mower</option>
+                  <option value="riding-mower">Riding Mower / Zero-Turn</option>
+                  <option value="snowblower">Snow Blower</option>
+                  <option value="generator">Generator</option>
+                  <option value="handheld">2-Stroke Handheld (Trimmer/Blower)</option>
+                  <option value="other">Other Machinery</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="c-issue">Describe the Problem</label>
+              <textarea id="c-issue" rows="4" required placeholder="Let us know what's going on..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-form-submit">Submit Service Request</button>
+            <div id="staging-form-status" class="form-status"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-content">
+      <p>&copy; 2026 Peterson Small Engine Repair. Proposed Redesign Experience Staging. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Script for Estimator Widget and Form Handling -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Menu Toggle
+      const menuBtn = document.querySelector('.menu-btn');
+      const navLinks = document.querySelector('.nav-links');
+      if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+          navLinks.classList.toggle('open');
+          menuBtn.classList.toggle('active');
+        });
+      }
+
+      // Close menu on link click
+      document.querySelectorAll('.nav-links a').forEach(a => {
+        a.addEventListener('click', () => {
+          navLinks.classList.remove('open');
+          if (menuBtn) menuBtn.classList.remove('active');
+        });
+      });
+
+      // Interactive Estimator Data
+      const rates = {
+        'push-mower': {
+          'tuneup': { labor: 79, time: '1–2 Days' },
+          'nostart': { labor: 65, time: '2–3 Days' },
+          'belt': { labor: 45, time: '1–2 Days' },
+          'blades': { labor: 25, time: 'Same Day' },
+          'oil': { labor: 35, time: 'Same Day' }
+        },
+        'riding-mower': {
+          'tuneup': { labor: 149, time: '2–4 Days' },
+          'nostart': { labor: 130, time: '2–4 Days' },
+          'belt': { labor: 95, time: '2–3 Days' },
+          'blades': { labor: 45, time: '1–2 Days' },
+          'oil': { labor: 65, time: '1–2 Days' }
+        },
+        'snow-blower': {
+          'tuneup': { labor: 89, time: '1–2 Days' },
+          'nostart': { labor: 89, time: '2–3 Days' },
+          'belt': { labor: 55, time: '1–2 Days' },
+          'blades': { labor: 20, time: 'Same Day' },
+          'oil': { labor: 45, time: 'Same Day' }
+        },
+        'generator': {
+          'tuneup': { labor: 99, time: '2–3 Days' },
+          'nostart': { labor: 99, time: '2–4 Days' },
+          'belt': { labor: 60, time: '2–3 Days' },
+          'blades': { labor: 0, time: 'N/A' },
+          'oil': { labor: 50, time: '1–2 Days' }
+        },
+        'handheld': {
+          'tuneup': { labor: 55, time: '1–2 Days' },
+          'nostart': { labor: 55, time: '2–3 Days' },
+          'belt': { labor: 30, time: '1–2 Days' },
+          'blades': { labor: 15, time: 'Same Day' },
+          'oil': { labor: 25, time: 'Same Day' }
+        }
+      };
+
+      const equipSelect = document.getElementById('widget-equip');
+      const issueSelect = document.getElementById('widget-issue');
+      const deliveryCheckbox = document.getElementById('widget-delivery');
+      const distanceGroup = document.getElementById('distance-group');
+      const distanceInput = document.getElementById('widget-distance');
+      const distanceVal = document.getElementById('distance-value');
+
+      const estLabor = document.getElementById('est-labor');
+      const estDelivery = document.getElementById('est-delivery');
+      const estTotal = document.getElementById('est-total');
+      const estTime = document.getElementById('est-time');
+      const deliveryRow = document.getElementById('result-delivery-row');
+
+      const calculateEstimate = () => {
+        const equip = equipSelect.value;
+        const issue = issueSelect.value;
+        const includeDelivery = deliveryCheckbox.checked;
+
+        // Fetch pricing rules
+        let laborCost = 0;
+        let timeline = '2–4 Days';
+
+        if (rates[equip] && rates[equip][issue]) {
+          laborCost = rates[equip][issue].labor;
+          timeline = rates[equip][issue].time;
+        }
+
+        let deliveryCost = 0;
+        if (includeDelivery) {
+          distanceGroup.style.display = 'block';
+          const distance = parseInt(distanceInput.value);
+          distanceVal.innerText = `${distance} Mile${distance > 1 ? 's' : ''}`;
+          
+          // $2 per mile round trip. First 5 miles gets flat $10 minimum.
+          if (distance <= 5) {
+            deliveryCost = 10;
+          } else {
+            deliveryCost = distance * 2;
+          }
+          estDelivery.innerText = `$${deliveryCost.toFixed(2)}`;
+          deliveryRow.style.display = 'flex';
+        } else {
+          distanceGroup.style.display = 'none';
+          deliveryRow.style.display = 'none';
+        }
+
+        const totalCost = laborCost + deliveryCost;
+
+        estLabor.innerText = `$${laborCost.toFixed(2)}`;
+        estTotal.innerText = `$${totalCost.toFixed(2)}`;
+        estTime.innerText = timeline;
+      };
+
+      // Set up event listeners
+      equipSelect.addEventListener('change', calculateEstimate);
+      issueSelect.addEventListener('change', calculateEstimate);
+      deliveryCheckbox.addEventListener('change', calculateEstimate);
+      distanceInput.addEventListener('input', calculateEstimate);
+
+      // Initialize
+      calculateEstimate();
+
+      // Apply estimate details to booking form
+      const btnApply = document.getElementById('btn-apply-estimate');
+      btnApply.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        // Match booking form fields with selection
+        const bookingEquip = document.getElementById('c-equip');
+        const bookingIssue = document.getElementById('c-issue');
+
+        if (bookingEquip) {
+          bookingEquip.value = equipSelect.value;
+        }
+
+        if (bookingIssue) {
+          const equipLabel = equipSelect.options[equipSelect.selectedIndex].text;
+          const issueLabel = issueSelect.options[issueSelect.selectedIndex].text;
+          const deliveryText = deliveryCheckbox.checked ? `with pickup/delivery requested (${distanceInput.value} miles)` : 'for drop-off';
+          bookingIssue.value = `Estimated service: ${equipLabel} - ${issueLabel} ${deliveryText}.\n\nDescribe any specific problems: `;
+        }
+
+        // Smooth scroll to form
+        const contactSection = document.getElementById('contact');
+        if (contactSection) {
+          contactSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+
+      // Staging Form Submit (sends to live backend)
+      const form = document.getElementById('staging-service-form');
+      const statusDiv = document.getElementById('staging-form-status');
+
+      if (form) {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const submitBtn = form.querySelector('.btn-form-submit');
+          const originalText = submitBtn.innerText;
+          
+          submitBtn.innerText = 'Submitting Request...';
+          submitBtn.disabled = true;
+          statusDiv.className = 'form-status';
+          statusDiv.innerText = '';
+
+          const payload = {
+            name: document.getElementById('c-name').value,
+            email: document.getElementById('c-email').value,
+            phone: document.getElementById('c-phone').value,
+            equipment: document.getElementById('c-equip').options[document.getElementById('c-equip').selectedIndex].text,
+            issue: document.getElementById('c-issue').value
+          };
+
+          try {
+            // Forward requests directly to the deployed worker backend
+            const response = await fetch('https://peterson-backend.mattssmallenginerep.workers.dev', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (data.success) {
+              statusDiv.classList.add('success');
+              statusDiv.innerText = data.message || 'Success! Request submitted. Matt will text you shortly.';
+              form.reset();
+            } else {
+              throw new Error(data.error || 'Failed to submit request.');
+            }
+          } catch (err) {
+            statusDiv.classList.add('error');
+            statusDiv.innerText = err.message || 'Failed to connect. Please try calling or texting instead.';
+          } finally {
+            submitBtn.innerText = originalText;
+            submitBtn.disabled = false;
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

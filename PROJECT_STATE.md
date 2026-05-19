@@ -32,9 +32,9 @@
 * `parts-manager/src/App.jsx`, `parts-manager/.env`
  
 **Next 3 actions:**
-* [x] Implement JWT validation and Webhook verification in `backend/index.js`.
-* [x] Update frontend environment configuration in `parts-manager`.
-* [x] Push changes to deploy and run verification tests.
+* [x] Create `preview/index.html` with premium UI structure and interactive estimator.
+* [x] Create `preview/style.css` with modern design system and animations.
+* [ ] Deploy staging preview and verify layout.
 
 
 
