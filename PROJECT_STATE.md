@@ -1,6 +1,6 @@
 # Project State
 
-**Goal:** Transition the infrastructure to Cloudflare (Pages/Registrar) and modernize the site deployment with Stripe and Square integration.
+**Goal:** Fix the hero/trust layout glitch and optimize mobile responsiveness for in-app browsers.
 
 **What changed:**
 * Synced local environment with GitHub repository.
@@ -15,8 +15,11 @@
 * **[NEW] Updated business phone number to 763-328-9259.**
 * **[NEW] Added delivery fee note: "* Reduced rate may apply within 5 miles."**
 * **[NEW] Replaced outdated logo with new "Peterson Small Engine Repair" branding.**
-* **[NEW] Updated business zip code to 55448 and implemented cache busting (v1.0.4).**
+* **[NEW] Updated business zip code to 55448 and implemented cache busting (v1.0.5).**
 * **[NEW] Implemented high-impact SEO optimizations (H1 tags, keyword-rich subheadings, and service area footer).**
+* **[NEW] Hardened Local SEO with Schema.org optimization (areaServed, @id) and Canonical tags.**
+* **[NEW] Created robots.txt to improve crawler efficiency.**
+* **[NEW] Investigated "white bubble" layout glitch in Facebook browser.**
 
 **Commands run + results:**
 * `npx wrangler d1 create` -> Successfully initialized Parts Database.
@@ -26,12 +29,11 @@
 **Files touched:**
 * `index.html`, `backend/index.js`, `backend/wrangler.toml`
 * `parts-manager/src/App.jsx`, `parts-manager/src/App.css`
-* `index.html` (Updated phone, delivery fee note)
-* `images/logo.png` (Replaced with new logo)
+* `style.css` (Investigating layout glitch)
 
 **Next 3 actions:**
+* [x] Fix the "white bubble" layout glitch in `style.css`.
+* [x] Optimize hero section height for mobile viewports.
 * [ ] Monitor first real lead through the new system.
-* [ ] Add "Low Stock" SMS notifications to Matt's phone.
-* [ ] Build the "Parts Forecasting" daily report using upcoming Square Appointments.
 
 
