@@ -20,9 +20,12 @@
 * Hardened Local SEO with Schema.org optimization (areaServed, @id) and Canonical tags.
 * Created robots.txt to improve crawler efficiency.
 * Completed code and security review; identified key access control bypass vulnerabilities.
+* Implemented cryptographic Cloudflare Access JWT validation in backend Worker.
+* Added Stripe Webhook signature verification and dynamic CORS origin constraints.
+* Hardened React frontend to grab JWT assertions from the Zero Trust session and forward them to API calls.
  
 **Commands run + results:**
-* `git push` -> Deployed updated Frontend with SEO fixes and layout tweaks.
+* `git push` -> Deployed updated full-stack app with security patches. Verified 401 response on unauthenticated endpoints.
  
 **Files touched:**
 * `backend/index.js`, `backend/wrangler.toml`
@@ -31,7 +34,7 @@
 **Next 3 actions:**
 * [x] Implement JWT validation and Webhook verification in `backend/index.js`.
 * [x] Update frontend environment configuration in `parts-manager`.
-* [ ] Push changes to deploy and run verification tests.
+* [x] Push changes to deploy and run verification tests.
 
 
 
