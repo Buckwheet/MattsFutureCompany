@@ -4,6 +4,7 @@ compatibility_date = "2026-05-02"
 
 [vars]
 # No sensitive keys here, use secrets!
+CLOUDFLARE_ACCESS_AUD = "aacb7bcf26d69f02434af3df3e687d20cb19eb7f40687a71521564b5d2152856"
 
 [[d1_databases]]
 binding = "DB"

@@ -4,7 +4,19 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Package, Scan, Plus, Search, AlertTriangle, ArrowLeft, Save } from 'lucide-react';
 import './App.css';
 
-const API_BASE = 'https://peterson-backend.mattssmallenginerep.workers.dev';
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://peterson-backend.mattssmallenginerep.workers.dev';
+
+// Automatically append Cloudflare Access JWT Assertion header to Axios requests
+axios.interceptors.request.use(
+  (config) => {
+    const jwt = sessionStorage.getItem('cf_access_jwt');
+    if (jwt) {
+      config.headers['Cf-Access-Jwt-Assertion'] = jwt;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 function App() {
   const [parts, setParts] = useState([]);
@@ -16,7 +28,23 @@ function App() {
   });
 
   useEffect(() => {
-    fetchParts();
+    const loadJwt = async () => {
+      try {
+        // Retrieve JWT assertion token from Cloudflare Zero Trust session
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          const res = await axios.get('/cdn-cgi/access/jwt');
+          if (res.data && typeof res.data === 'string') {
+            sessionStorage.setItem('cf_access_jwt', res.data);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not fetch Zero Trust JWT assertion. Bypassing (running in dev mode).');
+      }
+    };
+
+    loadJwt().then(() => {
+      fetchParts();
+    });
   }, []);
 
   const fetchParts = async () => {
@@ -70,7 +98,10 @@ function App() {
       // Binary upload to R2
       const res = await fetch(`${API_BASE}/api/upload`, {
         method: 'POST',
-        headers: { 'Content-Type': 'image/jpeg' },
+        headers: { 
+          'Content-Type': 'image/jpeg',
+          'Cf-Access-Jwt-Assertion': sessionStorage.getItem('cf_access_jwt') || ''
+        },
         body: file
       });
       const data = await res.json();
