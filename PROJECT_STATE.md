@@ -34,7 +34,7 @@
 **Next 3 actions:**
 * [x] Create `preview/index.html` with premium UI structure and interactive estimator.
 * [x] Create `preview/style.css` with modern design system and animations.
-* [ ] Deploy staging preview and verify layout.
+* [x] Deploy staging preview and verify layout.
 
 
 
