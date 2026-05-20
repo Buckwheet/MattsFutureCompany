@@ -33,7 +33,7 @@
 * `parts-manager/src/App.jsx`, `parts-manager/.env`
  
 **Next 3 actions:**
-* [ ] Verify that main site index.html is unaffected by the preview cleanup.
+* [x] Verify that main site index.html is unaffected by the preview cleanup.
 * [ ] Set up Google Business Profile review automation flow.
 * [ ] Draft localized SEO copy additions directly for main index.html.
 
