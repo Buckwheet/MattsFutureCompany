@@ -23,6 +23,7 @@
 * Implemented cryptographic Cloudflare Access JWT validation in backend Worker.
 * Added Stripe Webhook signature verification and dynamic CORS origin constraints.
 * Hardened React frontend to grab JWT assertions from the Zero Trust session and forward them to API calls.
+* Aborted the frontend redesign preview based on client feedback and removed staging files (`preview/index.html` and `preview/style.css`).
  
 **Commands run + results:**
 * `git push` -> Deployed updated full-stack app with security patches. Verified 401 response on unauthenticated endpoints.
@@ -32,9 +33,9 @@
 * `parts-manager/src/App.jsx`, `parts-manager/.env`
  
 **Next 3 actions:**
-* [x] Adjust `preview/index.html` to restore original layout sections while keeping fixed tech.
-* [x] Adjust `preview/style.css` to revert color palette and styling to the original theme.
-* [x] Deploy updated preview and verify look-and-feel.
+* [ ] Verify that main site index.html is unaffected by the preview cleanup.
+* [ ] Set up Google Business Profile review automation flow.
+* [ ] Draft localized SEO copy additions directly for main index.html.
 
 
 
