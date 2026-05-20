@@ -32,9 +32,9 @@
 * `parts-manager/src/App.jsx`, `parts-manager/.env`
  
 **Next 3 actions:**
-* [x] Create `preview/index.html` with premium UI structure and interactive estimator.
-* [x] Create `preview/style.css` with modern design system and animations.
-* [x] Deploy staging preview and verify layout.
+* [x] Adjust `preview/index.html` to restore original layout sections while keeping fixed tech.
+* [x] Adjust `preview/style.css` to revert color palette and styling to the original theme.
+* [ ] Deploy updated preview and verify look-and-feel.
 
 
 
