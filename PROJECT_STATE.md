@@ -34,7 +34,7 @@
 **Next 3 actions:**
 * [x] Adjust `preview/index.html` to restore original layout sections while keeping fixed tech.
 * [x] Adjust `preview/style.css` to revert color palette and styling to the original theme.
-* [ ] Deploy updated preview and verify look-and-feel.
+* [x] Deploy updated preview and verify look-and-feel.
 
 
 
