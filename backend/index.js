@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 // Allowed CORS Origins
 const ALLOWED_ORIGINS = [
   'https://inventory.petersonsmallenginerepair.com',
+  'https://petersonsmallenginerepair.com',
   'http://localhost:5173',
   'http://localhost:8788'
 ];

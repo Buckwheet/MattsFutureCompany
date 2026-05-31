@@ -24,6 +24,7 @@
 * Added Stripe Webhook signature verification and dynamic CORS origin constraints.
 * Hardened React frontend to grab JWT assertions from the Zero Trust session and forward them to API calls.
 * Aborted the frontend redesign preview based on client feedback and removed staging files (`preview/index.html` and `preview/style.css`).
+* Fixed CORS "failed to fetch" error for contact form by adding petersonsmallenginerepair.com to ALLOWED_ORIGINS in backend Worker.
  
 **Commands run + results:**
 * `git push` -> Deployed updated full-stack app with security patches. Verified 401 response on unauthenticated endpoints.
