@@ -526,5 +526,99 @@ export default {
     }
 
     return new Response('Not Found', { status: 404, headers: corsHeaders });
+  },
+
+  async scheduled(controller, env, ctx) {
+    let report = [];
+    let allPassed = true;
+
+    // 1. Check Main Website
+    try {
+      const res = await fetch('https://petersonsmallenginerepair.com');
+      if (res.ok) {
+        report.push('✅ Main Website (petersonsmallenginerepair.com) is UP');
+      } else {
+        report.push(`❌ Main Website is DOWN (Status: ${res.status})`);
+        allPassed = false;
+      }
+    } catch (e) {
+      report.push(`❌ Main Website check failed: ${e.message}`);
+      allPassed = false;
+    }
+
+    // 2. Check Inventory Dashboard
+    try {
+      const res = await fetch('https://inventory.petersonsmallenginerepair.com');
+      if (res.ok) {
+        report.push('✅ Inventory Dashboard (inventory.petersonsmallenginerepair.com) is UP');
+      } else {
+        report.push(`❌ Inventory Dashboard is DOWN (Status: ${res.status})`);
+        allPassed = false;
+      }
+    } catch (e) {
+      report.push(`❌ Inventory Dashboard check failed: ${e.message}`);
+      allPassed = false;
+    }
+
+    // 3. Check Database
+    try {
+      const { results } = await env.DB.prepare("SELECT COUNT(*) as count FROM parts").all();
+      if (results && results.length > 0) {
+        report.push(`✅ Database is connected (Total Parts: ${results[0].count})`);
+      } else {
+        report.push(`❌ Database query returned no results`);
+        allPassed = false;
+      }
+    } catch (e) {
+      report.push(`❌ Database check failed: ${e.message}`);
+      allPassed = false;
+    }
+
+    // 4. Verify Integrations
+    if (env.STRIPE_SECRET_KEY) report.push('✅ Stripe Integration is Configured');
+    else { report.push('❌ Stripe Integration is MISSING'); allPassed = false; }
+
+    if (env.SQUARE_ACCESS_TOKEN) report.push('✅ Square Integration is Configured');
+    else { report.push('⚠️ Square Integration is MISSING (Optional)'); }
+
+    if (env.RESEND_API_KEY) report.push('✅ Resend Integration is Configured');
+    else { report.push('❌ Resend Integration is MISSING'); allPassed = false; }
+
+    // 5. Send Report via Resend
+    if (env.RESEND_API_KEY) {
+      const statusColor = allPassed ? '#0b1a14' : '#d92d20';
+      const statusText = allPassed ? 'All Systems Operational' : 'Action Required: System Issues Detected';
+
+      const emailHtml = `
+        <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: ${statusColor};">Peterson Small Engine Repair</h2>
+          <h3>Daily Health Report</h3>
+          <p><strong>Status:</strong> ${statusText}</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <ul style="list-style-type: none; padding: 0; line-height: 1.8;">
+            ${report.map(item => `<li>${item}</li>`).join('')}
+          </ul>
+          <p style="margin-top: 30px; font-size: 0.8rem; color: #666;">Automated check performed at ${new Date().toUTCString()}</p>
+        </div>
+      `;
+
+      try {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Health Monitor <leads@petersonsmallenginerepair.com>',
+            to: 'mattssmallenginerep@gmail.com',
+            subject: `Health Report: ${allPassed ? 'OK' : 'ALERT'}`,
+            html: emailHtml
+          }),
+        });
+      } catch (e) {
+        console.error('Failed to send health report email:', e.message);
+      }
+    }
   }
 };
