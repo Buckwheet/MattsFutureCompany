@@ -524,3 +524,37 @@ footer p { font-size: 0.9rem; color: rgba(255,255,255,0.5); margin: 0; }
   .contact-inner { grid-template-columns: 1fr; text-align: center; gap: 40px; }
   .contact-card { text-align: left; }
 }
+
+/* Pickup Checkboxes Styles */
+.pickup-options {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  height: 56px;
+}
+.pickup-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #fff;
+}
+.pickup-option input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-block;
+  -webkit-appearance: checkbox;
+  appearance: checkbox;
+}
+.pickup-option input[type="checkbox"]:focus {
+  transform: none;
+  box-shadow: none;
+}

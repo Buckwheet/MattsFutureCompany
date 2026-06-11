@@ -372,7 +372,7 @@ export default {
     if (url.pathname === '/' && request.method === 'POST') {
       try {
         const data = await request.json();
-        const { name, email, phone, equipment, issue } = data;
+        const { name, email, phone, equipment, issue, pickup_required } = data;
 
         // Basic input validations
         if (!name || !email || !phone || !equipment || !issue) {
@@ -459,6 +459,7 @@ export default {
                     <p><strong>Customer:</strong> ${name}</p>
                     <p><strong>Phone:</strong> ${phone}</p>
                     <p><strong>Equipment:</strong> ${equipment}</p>
+                    <p><strong>Pickup Required?</strong> ${pickup_required || 'No'}</p>
                     <p><strong>Issue:</strong> ${issue}</p>
                     
                     <div style="margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
