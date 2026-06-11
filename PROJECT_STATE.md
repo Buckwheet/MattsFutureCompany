@@ -3,12 +3,12 @@
 **Goal:** Add "Pickup Required?" checkbox option to service request form and include response in lead notification emails.
  
 **What changed:**
-* Created premium styled "Pickup Required?" checkboxes (Yes/No) next to the "How can I help?" field in index.html.
-* Adjusted the grid column layout (2.5fr to 1fr split) in style.css to restore ample space for the "How can I help?" textarea.
+* Created premium styled "Pickup Required?" checkboxes (Yes/No) below the "How can I help?" textarea in index.html.
+* Restored full-width typing space for the textarea by stacking the checkbox field vertically underneath it.
 * Enforced mutual exclusivity on Yes/No checkboxes using JavaScript in index.html.
 * Updated backend Cloudflare Worker to parse and extract the `pickup_required` payload.
 * Rendered "Pickup Required?" status in lead notification emails in backend/index.js.
-* Cache busted the stylesheet by incrementing the query parameter to `v=1.0.7` in index.html.
+* Cache busted the stylesheet by incrementing the query parameter to `v=1.0.8` in index.html.
  
 **Commands run + results:**
 * `git push` -> Commits and deploys the frontend and backend update via GitHub Actions CI/CD.
