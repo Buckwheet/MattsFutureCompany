@@ -457,6 +457,7 @@ export default {
                   <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                     <h2 style="color: #0b1a14;">New Service Request</h2>
                     <p><strong>Customer:</strong> ${name}</p>
+                    <p><strong>Phone:</strong> ${phone}</p>
                     <p><strong>Equipment:</strong> ${equipment}</p>
                     <p><strong>Issue:</strong> ${issue}</p>
                     
