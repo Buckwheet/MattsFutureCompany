@@ -596,6 +596,17 @@ document.addEventListener('DOMContentLoaded', () => {
     startSlideshow();
   }
 
+  // === Smooth Scroll to Contact Form aligned to bottom ===
+  document.querySelectorAll('a[href="#contact"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.getElementById('contact');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    });
+  });
+
   // === Pickup Checkbox Exclusivity ===
   const pickupYes = document.getElementById('pickup-yes');
   const pickupNo = document.getElementById('pickup-no');

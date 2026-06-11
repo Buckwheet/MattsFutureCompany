@@ -6,6 +6,7 @@
 * Created premium styled "Pickup Required?" checkboxes (Yes/No) below the "How can I help?" textarea in index.html.
 * Restored full-width typing space for the textarea by stacking the checkbox field vertically underneath it.
 * Enforced mutual exclusivity on Yes/No checkboxes using JavaScript in index.html.
+* Implemented browser smooth-scroll override for contact links to align the bottom of the contact section (submit button) with the viewport bottom.
 * Updated backend Cloudflare Worker to parse and extract the `pickup_required` payload.
 * Rendered "Pickup Required?" status in lead notification emails in backend/index.js.
 * Cache busted the stylesheet by incrementing the query parameter to `v=1.0.8` in index.html.
