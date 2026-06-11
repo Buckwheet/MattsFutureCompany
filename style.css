@@ -525,6 +525,20 @@ footer p { font-size: 0.9rem; color: rgba(255,255,255,0.5); margin: 0; }
   .contact-card { text-align: left; }
 }
 
+.issue-pickup-row {
+  display: grid;
+  grid-template-columns: 2.5fr 1fr;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 600px) {
+  .issue-pickup-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
 /* Pickup Checkboxes Styles */
 .pickup-options {
   display: flex;
