@@ -1,5 +1,6 @@
 name = "peterson-small-engine-repair"
-pages_build_output_dir = "./"
+pages_build_output_dir = "./site"
+compatibility_date = "2026-06-25"
 
 [dev]
 port = 8788

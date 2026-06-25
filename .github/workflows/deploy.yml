@@ -20,7 +20,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=petersons-small-engine-repair --branch=main --skip-caching
+          command: pages deploy ./site --project-name=petersons-small-engine-repair --branch=main --skip-caching
 
       - name: Install Backend Dependencies
         run: npm install
