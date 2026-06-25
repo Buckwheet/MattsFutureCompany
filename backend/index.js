@@ -286,9 +286,11 @@ export default {
     if (url.pathname === '/api/upload' && request.method === 'POST') {
       try {
         await requireAuth();
-        const key = `part_${Date.now()}.jpg`;
+        const contentType = request.headers.get('Content-Type') || 'image/jpeg';
+        const ext = contentType === 'image/png' ? '.png' : '.jpg';
+        const key = `part_${Date.now()}${ext}`;
         await env.PHOTOS.put(key, request.body, {
-          httpMetadata: { contentType: 'image/jpeg' }
+          httpMetadata: { contentType }
         });
         return corsResponse({ success: true, url: `${url.origin}/api/photos/${key}` }, 200, corsHeaders);
       } catch (e) {

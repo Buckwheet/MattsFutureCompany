@@ -96,10 +96,11 @@ function App() {
     setUploading(true);
     try {
       // Binary upload to R2
+      const contentType = file.type || 'image/jpeg';
       const res = await fetch(`${API_BASE}/api/upload`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'image/jpeg',
+          'Content-Type': contentType,
           'Cf-Access-Jwt-Assertion': sessionStorage.getItem('cf_access_jwt') || ''
         },
         body: file
