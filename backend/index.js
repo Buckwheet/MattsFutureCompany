@@ -155,29 +155,42 @@ export default {
 
         const bodyText = await request.text();
         let event;
-        
-        // Verify Stripe Webhook Signature if secret is configured
-        if (env.STRIPE_WEBHOOK_SECRET) {
-          event = stripe.webhooks.constructEvent(bodyText, signature, env.STRIPE_WEBHOOK_SECRET);
-        } else {
-          console.warn("STRIPE_WEBHOOK_SECRET is not set, parsing payload without signature verification.");
-          event = JSON.parse(bodyText);
+
+        if (!env.STRIPE_WEBHOOK_SECRET) {
+          console.error('STRIPE_WEBHOOK_SECRET is not configured — cannot verify webhook');
+          return corsResponse({ error: 'Webhook secret not configured' }, 500, corsHeaders);
         }
-        
-        // Handle successful payment (Invoice or Checkout)
-        if (event.type === 'invoice.paid' || event.type === 'checkout.session.completed') {
+
+        event = stripe.webhooks.constructEvent(bodyText, signature, env.STRIPE_WEBHOOK_SECRET);
+
+        if (event.type === 'checkout.session.completed') {
           const session = event.data.object;
-          
-          // Get line items (for checkout sessions)
           const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-          
+
           for (const item of lineItems.data) {
-            // Find part by stripe_product_id and subtract inventory
             await env.DB.prepare(`
-              UPDATE parts 
-              SET quantity = MAX(0, quantity - ?) 
+              UPDATE parts
+              SET quantity = MAX(0, quantity - ?)
               WHERE stripe_product_id = ?
             `).bind(item.quantity, item.price.product).run();
+          }
+        }
+
+        if (event.type === 'invoice.paid') {
+          const invoice = event.data.object;
+
+          if (!invoice.lines || !invoice.lines.data) {
+            console.log('invoice.paid: no line items, skipping inventory deduction');
+          } else {
+            for (const item of invoice.lines.data) {
+              if (item.price && item.price.product) {
+                await env.DB.prepare(`
+                  UPDATE parts
+                  SET quantity = MAX(0, quantity - ?)
+                  WHERE stripe_product_id = ?
+                `).bind(item.quantity, item.price.product).run();
+              }
+            }
           }
         }
         

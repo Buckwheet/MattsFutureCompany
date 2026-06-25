@@ -3,8 +3,7 @@ main = "index.js"
 compatibility_date = "2026-05-02"
 
 [vars]
-# No sensitive keys here, use secrets!
-CLOUDFLARE_ACCESS_AUD = "aacb7bcf26d69f02434af3df3e687d20cb19eb7f40687a71521564b5d2152856"
+# CLOUDFLARE_ACCESS_AUD moved to secrets — set via `npx wrangler secret put CLOUDFLARE_ACCESS_AUD`
 
 [[d1_databases]]
 binding = "DB"
