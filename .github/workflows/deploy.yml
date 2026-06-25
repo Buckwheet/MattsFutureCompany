@@ -26,16 +26,6 @@ jobs:
         run: npm install
         working-directory: backend
 
-      - name: Set Required Secrets
-        run: |
-          echo "${{ secrets.STRIPE_SECRET_KEY }}" | npx wrangler secret put STRIPE_SECRET_KEY
-          echo "${{ secrets.STRIPE_WEBHOOK_SECRET }}" | npx wrangler secret put STRIPE_WEBHOOK_SECRET
-          echo "${{ secrets.CLOUDFLARE_ACCESS_AUD }}" | npx wrangler secret put CLOUDFLARE_ACCESS_AUD
-        working-directory: backend
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
       - name: Deploy Backend Worker
         uses: cloudflare/wrangler-action@v3
         with:
@@ -44,18 +34,18 @@ jobs:
           workingDirectory: backend
           command: deploy --name=peterson-backend --compatibility-date=2026-05-02
 
-      - name: Upload Optional Secrets (Graceful)
+      - name: Set Worker Secrets
         run: |
+          echo "${{ secrets.STRIPE_SECRET_KEY }}" | npx wrangler secret put STRIPE_SECRET_KEY
+          echo "${{ secrets.STRIPE_WEBHOOK_SECRET }}" | npx wrangler secret put STRIPE_WEBHOOK_SECRET
+          echo "${{ secrets.CLOUDFLARE_ACCESS_AUD }}" | npx wrangler secret put CLOUDFLARE_ACCESS_AUD
           if [ -n "${{ secrets.RESEND_API_KEY }}" ]; then
-            echo "Uploading RESEND_API_KEY..."
             echo "${{ secrets.RESEND_API_KEY }}" | npx wrangler secret put RESEND_API_KEY
           fi
           if [ -n "${{ secrets.SQUARE_ACCESS_TOKEN }}" ]; then
-            echo "Uploading SQUARE_ACCESS_TOKEN..."
             echo "${{ secrets.SQUARE_ACCESS_TOKEN }}" | npx wrangler secret put SQUARE_ACCESS_TOKEN
           fi
           if [ -n "${{ secrets.SQUARE_LOCATION_ID }}" ]; then
-            echo "Uploading SQUARE_LOCATION_ID..."
             echo "${{ secrets.SQUARE_LOCATION_ID }}" | npx wrangler secret put SQUARE_LOCATION_ID
           fi
         working-directory: backend
