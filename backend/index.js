@@ -365,6 +365,21 @@ export default {
             metadata: { sku, upc }
           });
           stripeProductId = product.id;
+        } else {
+          await stripe.products.update(stripeProductId, {
+            name: name,
+            description: description || `SKU: ${sku}`,
+            images: image_url ? [image_url] : [],
+            metadata: { sku, upc }
+          });
+          const newPrice = await stripe.prices.create({
+            product: stripeProductId,
+            currency: 'usd',
+            unit_amount: Math.round(numPrice * 100),
+          });
+          await stripe.products.update(stripeProductId, {
+            default_price: newPrice.id,
+          });
         }
 
         // 2. Save to D1
