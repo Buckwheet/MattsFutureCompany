@@ -20,7 +20,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=petersons-small-engine-repair --branch=main --skip-caching
+          command: pages deploy ./site --project-name=petersons-small-engine-repair --branch=main --skip-caching
 
       - name: Install Backend Dependencies
         run: npm install
@@ -35,8 +35,12 @@ jobs:
           command: deploy --name=peterson-backend --compatibility-date=2026-05-02
           secrets: |
             STRIPE_SECRET_KEY
+            STRIPE_WEBHOOK_SECRET
+            CLOUDFLARE_ACCESS_AUD
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          CLOUDFLARE_ACCESS_AUD: ${{ secrets.CLOUDFLARE_ACCESS_AUD }}
 
       - name: Upload Optional Secrets (Graceful)
         run: |

@@ -121,6 +121,19 @@ async function verifyAccessJwt(request, env) {
   }
 }
 
+const rateLimitMap = new Map();
+
+function checkRateLimit(ip, maxRequests = 5, windowMs = 60000) {
+  const now = Date.now();
+  const windowStart = now - windowMs;
+  const recent = rateLimitMap.get(ip) || [];
+  const valid = recent.filter(t => t > windowStart);
+  if (valid.length >= maxRequests) return false;
+  valid.push(now);
+  rateLimitMap.set(ip, valid);
+  return true;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -155,29 +168,42 @@ export default {
 
         const bodyText = await request.text();
         let event;
-        
-        // Verify Stripe Webhook Signature if secret is configured
-        if (env.STRIPE_WEBHOOK_SECRET) {
-          event = stripe.webhooks.constructEvent(bodyText, signature, env.STRIPE_WEBHOOK_SECRET);
-        } else {
-          console.warn("STRIPE_WEBHOOK_SECRET is not set, parsing payload without signature verification.");
-          event = JSON.parse(bodyText);
+
+        if (!env.STRIPE_WEBHOOK_SECRET) {
+          console.error('STRIPE_WEBHOOK_SECRET is not configured — cannot verify webhook');
+          return corsResponse({ error: 'Webhook secret not configured' }, 500, corsHeaders);
         }
-        
-        // Handle successful payment (Invoice or Checkout)
-        if (event.type === 'invoice.paid' || event.type === 'checkout.session.completed') {
+
+        event = stripe.webhooks.constructEvent(bodyText, signature, env.STRIPE_WEBHOOK_SECRET);
+
+        if (event.type === 'checkout.session.completed') {
           const session = event.data.object;
-          
-          // Get line items (for checkout sessions)
           const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-          
+
           for (const item of lineItems.data) {
-            // Find part by stripe_product_id and subtract inventory
             await env.DB.prepare(`
-              UPDATE parts 
-              SET quantity = MAX(0, quantity - ?) 
+              UPDATE parts
+              SET quantity = MAX(0, quantity - ?)
               WHERE stripe_product_id = ?
             `).bind(item.quantity, item.price.product).run();
+          }
+        }
+
+        if (event.type === 'invoice.paid') {
+          const invoice = event.data.object;
+
+          if (!invoice.lines || !invoice.lines.data) {
+            console.log('invoice.paid: no line items, skipping inventory deduction');
+          } else {
+            for (const item of invoice.lines.data) {
+              if (item.price && item.price.product) {
+                await env.DB.prepare(`
+                  UPDATE parts
+                  SET quantity = MAX(0, quantity - ?)
+                  WHERE stripe_product_id = ?
+                `).bind(item.quantity, item.price.product).run();
+              }
+            }
           }
         }
         
@@ -224,10 +250,21 @@ export default {
         const upc = url.searchParams.get('upc');
         if (!upc) return corsResponse({ error: 'UPC Required' }, 400, corsHeaders);
         
-        const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`);
-        const data = await res.json();
+        let data;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`);
+          if (res.status === 429) {
+            if (attempt < 3) {
+              await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+              continue;
+            }
+            return corsResponse({ error: 'UPC lookup rate limited' }, 429, corsHeaders);
+          }
+          data = await res.json();
+          break;
+        }
         
-        if (data.items && data.items.length > 0) {
+        if (data && data.items && data.items.length > 0) {
           const item = data.items[0];
           return corsResponse({
             name: item.title,
@@ -260,9 +297,11 @@ export default {
     if (url.pathname === '/api/upload' && request.method === 'POST') {
       try {
         await requireAuth();
-        const key = `part_${Date.now()}.jpg`;
+        const contentType = request.headers.get('Content-Type') || 'image/jpeg';
+        const ext = contentType === 'image/png' ? '.png' : '.jpg';
+        const key = `part_${Date.now()}${ext}`;
         await env.PHOTOS.put(key, request.body, {
-          httpMetadata: { contentType: 'image/jpeg' }
+          httpMetadata: { contentType }
         });
         return corsResponse({ success: true, url: `${url.origin}/api/photos/${key}` }, 200, corsHeaders);
       } catch (e) {
@@ -337,6 +376,21 @@ export default {
             metadata: { sku, upc }
           });
           stripeProductId = product.id;
+        } else {
+          await stripe.products.update(stripeProductId, {
+            name: name,
+            description: description || `SKU: ${sku}`,
+            images: image_url ? [image_url] : [],
+            metadata: { sku, upc }
+          });
+          const newPrice = await stripe.prices.create({
+            product: stripeProductId,
+            currency: 'usd',
+            unit_amount: Math.round(numPrice * 100),
+          });
+          await stripe.products.update(stripeProductId, {
+            default_price: newPrice.id,
+          });
         }
 
         // 2. Save to D1
@@ -377,6 +431,11 @@ export default {
         // Basic input validations
         if (!name || !email || !phone || !equipment || !issue) {
           return corsResponse({ error: 'All fields are required' }, 400, corsHeaders);
+        }
+
+        const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+        if (!checkRateLimit(clientIp)) {
+          return corsResponse({ error: 'Too many requests. Please try again later.' }, 429, corsHeaders);
         }
 
         // 1. STRIPE CUSTOMER LOGIC
@@ -531,96 +590,98 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
-    let report = [];
-    let allPassed = true;
+    ctx.waitUntil((async () => {
+      let report = [];
+      let allPassed = true;
 
-    // 1. Check Main Website
-    try {
-      const res = await fetch('https://petersonsmallenginerepair.com');
-      if (res.ok) {
-        report.push('✅ Main Website (petersonsmallenginerepair.com) is UP');
-      } else {
-        report.push(`❌ Main Website is DOWN (Status: ${res.status})`);
-        allPassed = false;
-      }
-    } catch (e) {
-      report.push(`❌ Main Website check failed: ${e.message}`);
-      allPassed = false;
-    }
-
-    // 2. Check Inventory Dashboard
-    try {
-      const res = await fetch('https://inventory.petersonsmallenginerepair.com');
-      if (res.ok) {
-        report.push('✅ Inventory Dashboard (inventory.petersonsmallenginerepair.com) is UP');
-      } else {
-        report.push(`❌ Inventory Dashboard is DOWN (Status: ${res.status})`);
-        allPassed = false;
-      }
-    } catch (e) {
-      report.push(`❌ Inventory Dashboard check failed: ${e.message}`);
-      allPassed = false;
-    }
-
-    // 3. Check Database
-    try {
-      const { results } = await env.DB.prepare("SELECT COUNT(*) as count FROM parts").all();
-      if (results && results.length > 0) {
-        report.push(`✅ Database is connected (Total Parts: ${results[0].count})`);
-      } else {
-        report.push(`❌ Database query returned no results`);
-        allPassed = false;
-      }
-    } catch (e) {
-      report.push(`❌ Database check failed: ${e.message}`);
-      allPassed = false;
-    }
-
-    // 4. Verify Integrations
-    if (env.STRIPE_SECRET_KEY) report.push('✅ Stripe Integration is Configured');
-    else { report.push('❌ Stripe Integration is MISSING'); allPassed = false; }
-
-    if (env.SQUARE_ACCESS_TOKEN) report.push('✅ Square Integration is Configured');
-    else { report.push('⚠️ Square Integration is MISSING (Optional)'); }
-
-    if (env.RESEND_API_KEY) report.push('✅ Resend Integration is Configured');
-    else { report.push('❌ Resend Integration is MISSING'); allPassed = false; }
-
-    // 5. Send Report via Resend
-    if (env.RESEND_API_KEY) {
-      const statusColor = allPassed ? '#0b1a14' : '#d92d20';
-      const statusText = allPassed ? 'All Systems Operational' : 'Action Required: System Issues Detected';
-
-      const emailHtml = `
-        <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-          <h2 style="color: ${statusColor};">Peterson Small Engine Repair</h2>
-          <h3>Daily Health Report</h3>
-          <p><strong>Status:</strong> ${statusText}</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <ul style="list-style-type: none; padding: 0; line-height: 1.8;">
-            ${report.map(item => `<li>${item}</li>`).join('')}
-          </ul>
-          <p style="margin-top: 30px; font-size: 0.8rem; color: #666;">Automated check performed at ${new Date().toUTCString()}</p>
-        </div>
-      `;
-
+      // 1. Check Main Website
       try {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${env.RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'Health Monitor <leads@petersonsmallenginerepair.com>',
-            to: 'mattssmallenginerep@gmail.com',
-            subject: `Health Report: ${allPassed ? 'OK' : 'ALERT'}`,
-            html: emailHtml
-          }),
-        });
+        const res = await fetch('https://petersonsmallenginerepair.com');
+        if (res.ok) {
+          report.push('✅ Main Website (petersonsmallenginerepair.com) is UP');
+        } else {
+          report.push(`❌ Main Website is DOWN (Status: ${res.status})`);
+          allPassed = false;
+        }
       } catch (e) {
-        console.error('Failed to send health report email:', e.message);
+        report.push(`❌ Main Website check failed: ${e.message}`);
+        allPassed = false;
       }
-    }
+
+      // 2. Check Inventory Dashboard
+      try {
+        const res = await fetch('https://inventory.petersonsmallenginerepair.com');
+        if (res.ok) {
+          report.push('✅ Inventory Dashboard (inventory.petersonsmallenginerepair.com) is UP');
+        } else {
+          report.push(`❌ Inventory Dashboard is DOWN (Status: ${res.status})`);
+          allPassed = false;
+        }
+      } catch (e) {
+        report.push(`❌ Inventory Dashboard check failed: ${e.message}`);
+        allPassed = false;
+      }
+
+      // 3. Check Database
+      try {
+        const { results } = await env.DB.prepare("SELECT COUNT(*) as count FROM parts").all();
+        if (results && results.length > 0) {
+          report.push(`✅ Database is connected (Total Parts: ${results[0].count})`);
+        } else {
+          report.push(`❌ Database query returned no results`);
+          allPassed = false;
+        }
+      } catch (e) {
+        report.push(`❌ Database check failed: ${e.message}`);
+        allPassed = false;
+      }
+
+      // 4. Verify Integrations
+      if (env.STRIPE_SECRET_KEY) report.push('✅ Stripe Integration is Configured');
+      else { report.push('❌ Stripe Integration is MISSING'); allPassed = false; }
+
+      if (env.SQUARE_ACCESS_TOKEN) report.push('✅ Square Integration is Configured');
+      else { report.push('⚠️ Square Integration is MISSING (Optional)'); }
+
+      if (env.RESEND_API_KEY) report.push('✅ Resend Integration is Configured');
+      else { report.push('❌ Resend Integration is MISSING'); allPassed = false; }
+
+      // 5. Send Report via Resend
+      if (env.RESEND_API_KEY) {
+        const statusColor = allPassed ? '#0b1a14' : '#d92d20';
+        const statusText = allPassed ? 'All Systems Operational' : 'Action Required: System Issues Detected';
+
+        const emailHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: ${statusColor};">Peterson Small Engine Repair</h2>
+            <h3>Daily Health Report</h3>
+            <p><strong>Status:</strong> ${statusText}</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <ul style="list-style-type: none; padding: 0; line-height: 1.8;">
+              ${report.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+            <p style="margin-top: 30px; font-size: 0.8rem; color: #666;">Automated check performed at ${new Date().toUTCString()}</p>
+          </div>
+        `;
+
+        try {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: 'Health Monitor <leads@petersonsmallenginerepair.com>',
+              to: 'mattssmallenginerep@gmail.com',
+              subject: `Health Report: ${allPassed ? 'OK' : 'ALERT'}`,
+              html: emailHtml
+            }),
+          });
+        } catch (e) {
+          console.error('Failed to send health report email:', e.message);
+        }
+      }
+    })());
   }
 };
