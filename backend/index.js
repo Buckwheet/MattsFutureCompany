@@ -250,10 +250,21 @@ export default {
         const upc = url.searchParams.get('upc');
         if (!upc) return corsResponse({ error: 'UPC Required' }, 400, corsHeaders);
         
-        const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`);
-        const data = await res.json();
+        let data;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`);
+          if (res.status === 429) {
+            if (attempt < 3) {
+              await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+              continue;
+            }
+            return corsResponse({ error: 'UPC lookup rate limited' }, 429, corsHeaders);
+          }
+          data = await res.json();
+          break;
+        }
         
-        if (data.items && data.items.length > 0) {
+        if (data && data.items && data.items.length > 0) {
           const item = data.items[0];
           return corsResponse({
             name: item.title,
