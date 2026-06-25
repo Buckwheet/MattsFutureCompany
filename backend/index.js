@@ -121,6 +121,19 @@ async function verifyAccessJwt(request, env) {
   }
 }
 
+const rateLimitMap = new Map();
+
+function checkRateLimit(ip, maxRequests = 5, windowMs = 60000) {
+  const now = Date.now();
+  const windowStart = now - windowMs;
+  const recent = rateLimitMap.get(ip) || [];
+  const valid = recent.filter(t => t > windowStart);
+  if (valid.length >= maxRequests) return false;
+  valid.push(now);
+  rateLimitMap.set(ip, valid);
+  return true;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -390,6 +403,11 @@ export default {
         // Basic input validations
         if (!name || !email || !phone || !equipment || !issue) {
           return corsResponse({ error: 'All fields are required' }, 400, corsHeaders);
+        }
+
+        const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+        if (!checkRateLimit(clientIp)) {
+          return corsResponse({ error: 'Too many requests. Please try again later.' }, 429, corsHeaders);
         }
 
         // 1. STRIPE CUSTOMER LOGIC
