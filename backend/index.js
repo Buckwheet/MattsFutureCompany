@@ -174,7 +174,8 @@ export default {
           return corsResponse({ error: 'Webhook secret not configured' }, 500, corsHeaders);
         }
 
-        event = stripe.webhooks.constructEvent(bodyText, signature, env.STRIPE_WEBHOOK_SECRET);
+        // Workers only have async Web Crypto — the sync constructEvent throws here.
+        event = await stripe.webhooks.constructEventAsync(bodyText, signature, env.STRIPE_WEBHOOK_SECRET);
 
         if (event.type === 'checkout.session.completed') {
           const session = event.data.object;
