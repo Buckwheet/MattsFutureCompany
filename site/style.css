@@ -558,3 +558,14 @@ footer p { font-size: 0.9rem; color: rgba(255,255,255,0.5); margin: 0; }
   transform: none;
   box-shadow: none;
 }
+
+.delivery-section { margin-top: 12px; }
+.delivery-manual { margin-top: 12px; }
+.delivery-estimate {
+  margin-top: 12px;
+  font-weight: 600;
+  color: var(--accent, #d92d20);
+  min-height: 1.2em;
+}
+.delivery-estimate.in-area { color: #0b7a3b; }
+.delivery-estimate .muted { color: var(--muted, #888); font-weight: 400; font-size: 0.9rem; }

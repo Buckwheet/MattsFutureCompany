@@ -41,6 +41,125 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+// --- Delivery estimate constants & pure helpers ---
+// Origin: 10450 Foley Blvd, Coon Rapids, MN 55448 (server-side only, never exposed)
+export const ORIGIN_COORDS = { lat: 45.159887, lng: -93.275209 };
+
+export const SERVICE_AREA_CITIES = [
+  'Coon Rapids', 'Blaine', 'Andover', 'Anoka', 'Ham Lake', 'Fridley',
+  'Spring Lake Park', 'Ramsey', 'Champlin', 'Brooklyn Park', 'Lino Lakes',
+  'East Bethel', 'Maple Grove', 'Elk River'
+];
+
+const _normalizedCities = SERVICE_AREA_CITIES.map(c => c.toLowerCase());
+
+export function matchServiceArea(city) {
+  if (!city || typeof city !== 'string') return false;
+  return _normalizedCities.includes(city.trim().toLowerCase());
+}
+
+export function calculateFee(oneWayMiles) {
+  if (!Number.isFinite(oneWayMiles) || oneWayMiles < 0) {
+    return { estimate: null, roundTripMiles: 0, outOfRange: true };
+  }
+  const roundTripMiles = oneWayMiles * 2;
+  if (oneWayMiles > 20) {
+    return { estimate: null, roundTripMiles, outOfRange: true };
+  }
+  const rate = oneWayMiles <= 5 ? 1.5 : 2.0;
+  return {
+    estimate: Math.round(rate * roundTripMiles * 100) / 100,
+    roundTripMiles,
+    outOfRange: false
+  };
+}
+
+const METERS_PER_MILE = 1609.344;
+
+async function orsGeocode(env, address) {
+  const res = await fetch(
+    `https://api.openrouteservice.org/geocode/search?api_key=${env.ORS_API_KEY}` +
+    `&text=${encodeURIComponent(address)}&boundary.country=US&size=1`
+  );
+  if (!res.ok) throw new Error('Geocode failed');
+  const data = await res.json();
+  const f = data.features && data.features[0];
+  if (!f) throw new Error('Address not found');
+  return {
+    lng: f.geometry.coordinates[0],
+    lat: f.geometry.coordinates[1],
+    city: f.properties.locality || f.properties.county || '',
+    label: f.properties.label || address
+  };
+}
+
+async function orsReverseGeocode(env, lat, lng) {
+  const res = await fetch(
+    `https://api.openrouteservice.org/geocode/reverse?api_key=${env.ORS_API_KEY}` +
+    `&point.lat=${lat}&point.lon=${lng}&size=1`
+  );
+  if (!res.ok) throw new Error('Reverse geocode failed');
+  const data = await res.json();
+  const f = data.features && data.features[0];
+  return {
+    city: f ? (f.properties.locality || f.properties.county || '') : '',
+    label: f ? (f.properties.label || '') : ''
+  };
+}
+
+async function orsDrivingMiles(env, destLat, destLng) {
+  const res = await fetch('https://api.openrouteservice.org/v2/matrix/driving-car', {
+    method: 'POST',
+    headers: {
+      'Authorization': env.ORS_API_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      locations: [[ORIGIN_COORDS.lng, ORIGIN_COORDS.lat], [destLng, destLat]],
+      sources: [0],
+      destinations: [1],
+      metrics: ['distance'],
+      units: 'm'
+    })
+  });
+  if (!res.ok) throw new Error('Matrix failed');
+  const data = await res.json();
+  const meters = data.distances[0][0];
+  return meters / METERS_PER_MILE;
+}
+
+export async function buildEstimate(env, { lat, lng, address }) {
+  let destLat = lat, destLng = lng, city = '', label = '';
+
+  if ((destLat == null || destLng == null) && address) {
+    const g = await orsGeocode(env, address);
+    destLat = g.lat; destLng = g.lng; city = g.city; label = g.label;
+  }
+  if (destLat == null || destLng == null) {
+    throw new Error('No location provided');
+  }
+
+  const oneWayMiles = Math.round((await orsDrivingMiles(env, destLat, destLng)) * 10) / 10;
+
+  if (!city) {
+    const rev = await orsReverseGeocode(env, destLat, destLng);
+    city = rev.city;
+    if (!label) label = rev.label;
+  }
+
+  const fee = calculateFee(oneWayMiles);
+  return {
+    estimate: fee.estimate,
+    roundTripMiles: fee.roundTripMiles,
+    oneWayMiles,
+    city,
+    inServiceArea: matchServiceArea(city),
+    outOfRange: fee.outOfRange,
+    mapLink: `https://www.openstreetmap.org/?mlat=${destLat}&mlon=${destLng}#map=16/${destLat}/${destLng}`,
+    deliveryAddress: label
+  };
+}
+
 // Base64Url decode helper for JWT parsing
 function base64UrlDecode(str) {
   str = str.replace(/-/g, '+').replace(/_/g, '/');
@@ -436,11 +555,34 @@ export default {
       }
     }
 
+    // --- ROUTE: POST /api/estimate (Delivery Estimate - Public) ---
+    if (url.pathname === '/api/estimate' && request.method === 'POST') {
+      try {
+        const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+        if (!checkRateLimit(clientIp)) {
+          return corsResponse({ error: 'Too many requests. Please try again later.' }, 429, corsHeaders);
+        }
+        if (!env.ORS_API_KEY) {
+          return corsResponse({ error: 'Estimate unavailable' }, 503, corsHeaders);
+        }
+        const body = await request.json();
+        const { lat, lng, address } = body;
+        const result = await buildEstimate(env, { lat, lng, address });
+        return corsResponse(result, 200, corsHeaders);
+      } catch (e) {
+        console.error('Estimate Error:', e.message);
+        return corsResponse({ error: 'Could not calculate estimate' }, 502, corsHeaders);
+      }
+    }
+
     // --- ROUTE: POST / (Lead Capture - Public) ---
     if (url.pathname === '/' && request.method === 'POST') {
       try {
         const data = await request.json();
-        const { name, email, phone, equipment, issue, pickup_required } = data;
+        const {
+          name, email, phone, equipment, issue, pickup_required,
+          delivery_address, delivery_lat, delivery_lng, estimate, distance_miles
+        } = data;
 
         // Basic input validations
         if (!name || !email || !phone || !equipment || !issue) {
@@ -516,6 +658,22 @@ export default {
               ? `<a href="https://squareup.com/dashboard/appointments/calendar/book?customer_id=${squareCustomerId}" style="background: #006aff; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">Schedule (Square)</a>`
               : `<span style="color: #666; font-size: 0.8rem;">(Square Sync Disabled)</span>`;
 
+            const latNum = Number(delivery_lat);
+            const lngNum = Number(delivery_lng);
+            const hasValidCoords = Number.isFinite(latNum) && Number.isFinite(lngNum);
+            const mapLink = hasValidCoords
+              ? `https://www.openstreetmap.org/?mlat=${latNum}&mlon=${lngNum}#map=16/${latNum}/${lngNum}`
+              : '';
+            const deliveryBlock = (pickup_required === 'Yes')
+              ? `<div style="margin-top: 15px; padding: 12px; background: #f6f9f7; border-radius: 8px;">
+                   <p style="margin: 0 0 6px;"><strong>🚚 Delivery Requested</strong></p>
+                   <p style="margin: 4px 0;"><strong>Address:</strong> ${escapeHtml(delivery_address || 'Not provided')}</p>
+                   <p style="margin: 4px 0;"><strong>Distance (one-way):</strong> ${escapeHtml(distance_miles != null && distance_miles !== '' ? distance_miles + ' mi' : 'N/A')}</p>
+                   <p style="margin: 4px 0;"><strong>Estimated Fee:</strong> ${escapeHtml(estimate != null && estimate !== '' ? '$' + estimate : 'Call to confirm')}</p>
+                   ${mapLink ? `<p style="margin: 4px 0;"><a href="${mapLink}">📍 View pickup location</a></p>` : ''}
+                 </div>`
+              : '';
+
             await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: {
@@ -534,6 +692,7 @@ export default {
                     <p><strong>Equipment:</strong> ${escapeHtml(equipment)}</p>
                     <p><strong>Pickup Required?</strong> ${escapeHtml(pickup_required || 'No')}</p>
                     <p><strong>Issue:</strong> ${escapeHtml(issue)}</p>
+                    ${deliveryBlock}
                     
                     <div style="margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
                       <a href="https://dashboard.stripe.com/quotes/create?customer=${stripeCustomer.id}" 
