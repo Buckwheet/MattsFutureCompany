@@ -457,6 +457,21 @@
             </div>
           </div>
           
+          <div class="form-group delivery-section" id="delivery-section" hidden>
+            <button type="button" class="btn secondary" id="enable-location-btn">
+              📍 Enable location for an instant delivery estimate
+            </button>
+            <div class="delivery-manual" id="delivery-manual" hidden>
+              <label for="delivery_address">Delivery Address</label>
+              <input type="text" id="delivery_address" name="delivery_address" placeholder="Street, City, ZIP">
+            </div>
+            <div class="delivery-estimate" id="delivery-estimate"></div>
+            <input type="hidden" id="delivery_lat" name="delivery_lat">
+            <input type="hidden" id="delivery_lng" name="delivery_lng">
+            <input type="hidden" id="estimate" name="estimate">
+            <input type="hidden" id="distance_miles" name="distance_miles">
+          </div>
+          
           <button type="submit" class="btn primary full-width">Submit Request</button>
           <div id="form-status" class="form-status"></div>
         </form>
@@ -607,23 +622,86 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // === Pickup Checkbox Exclusivity ===
+  // === Pickup Checkbox Exclusivity + Delivery Section ===
   const pickupYes = document.getElementById('pickup-yes');
   const pickupNo = document.getElementById('pickup-no');
+  const deliverySection = document.getElementById('delivery-section');
+
+  function updateDeliveryVisibility() {
+    if (deliverySection) deliverySection.hidden = !(pickupYes && pickupYes.checked);
+  }
   if (pickupYes && pickupNo) {
     pickupYes.addEventListener('change', () => {
-      if (pickupYes.checked) {
-        pickupNo.checked = false;
-      } else {
-        pickupNo.checked = true;
-      }
+      if (pickupYes.checked) { pickupNo.checked = false; } else { pickupNo.checked = true; }
+      updateDeliveryVisibility();
     });
     pickupNo.addEventListener('change', () => {
-      if (pickupNo.checked) {
-        pickupYes.checked = false;
-      } else {
-        pickupYes.checked = true;
-      }
+      if (pickupNo.checked) { pickupYes.checked = false; } else { pickupYes.checked = true; }
+      updateDeliveryVisibility();
+    });
+    updateDeliveryVisibility();
+  }
+
+  // === Delivery Estimate Flow ===
+  const API_ESTIMATE = 'https://peterson-backend.mattssmallenginerep.workers.dev/api/estimate';
+  const enableLocationBtn = document.getElementById('enable-location-btn');
+  const deliveryManual = document.getElementById('delivery-manual');
+  const deliveryAddressInput = document.getElementById('delivery_address');
+  const deliveryEstimateEl = document.getElementById('delivery-estimate');
+  const latInput = document.getElementById('delivery_lat');
+  const lngInput = document.getElementById('delivery_lng');
+  const estimateInput = document.getElementById('estimate');
+  const distanceInput = document.getElementById('distance_miles');
+
+  function renderEstimate(r) {
+    if (!r || r.error) { deliveryEstimateEl.textContent = ''; return; }
+    estimateInput.value = r.estimate != null ? r.estimate : '';
+    distanceInput.value = r.oneWayMiles != null ? r.oneWayMiles : '';
+    if (r.deliveryAddress && !deliveryAddressInput.value) deliveryAddressInput.value = r.deliveryAddress;
+    deliveryEstimateEl.classList.toggle('in-area', !!r.inServiceArea);
+    if (r.outOfRange) {
+      deliveryEstimateEl.innerHTML = 'Outside standard service area — <span class="muted">call to confirm.</span>';
+    } else if (r.estimate != null) {
+      const area = r.inServiceArea && r.city ? ` <span class="muted">✓ ${r.city} is in my service area!</span>` : '';
+      deliveryEstimateEl.innerHTML =
+        `Estimated pickup &amp; delivery: ~$${r.estimate.toFixed(2)} <span class="muted">(confirmed upon scheduling)</span>${area}`;
+    } else {
+      deliveryEstimateEl.textContent = '';
+    }
+  }
+
+  async function fetchEstimate(payload) {
+    try {
+      deliveryEstimateEl.textContent = 'Calculating…';
+      const res = await fetch(API_ESTIMATE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      renderEstimate(await res.json());
+    } catch (e) {
+      deliveryEstimateEl.textContent = '';
+    }
+  }
+
+  if (enableLocationBtn) {
+    enableLocationBtn.addEventListener('click', () => {
+      if (!navigator.geolocation) { if (deliveryManual) deliveryManual.hidden = false; return; }
+      deliveryEstimateEl.textContent = 'Requesting location…';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          latInput.value = pos.coords.latitude;
+          lngInput.value = pos.coords.longitude;
+          fetchEstimate({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => { if (deliveryManual) deliveryManual.hidden = false; deliveryEstimateEl.textContent = ''; }
+      );
+    });
+  }
+  if (deliveryAddressInput) {
+    deliveryAddressInput.addEventListener('blur', () => {
+      const addr = deliveryAddressInput.value.trim();
+      if (addr.length > 4) { latInput.value = ''; lngInput.value = ''; fetchEstimate({ address: addr }); }
     });
   }
 
