@@ -41,6 +41,16 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+export function buildCustomerDeliveryBlock(pickup_required, delivery_address) {
+  if (pickup_required !== 'Yes') return '';
+  const addr = (delivery_address || '').trim();
+  const inner = addr
+    ? `<p style="margin: 0 0 6px;"><strong>Pickup/Delivery Address on file:</strong> ${escapeHtml(addr)}</p>
+       <p style="margin: 0; font-size: 0.9rem; color: #666;">Please make sure this address is correct. If it isn't, just let me know when I contact you to schedule.</p>`
+    : `<p style="margin: 0;"><strong>Pickup/Delivery requested.</strong> I'll confirm your address with you when I reach out to schedule.</p>`;
+  return `<div style="margin: 20px 0; padding: 12px; background: #f6f9f7; border-radius: 8px;">${inner}</div>`;
+}
+
 // --- Delivery estimate constants & pure helpers ---
 // Origin: 10450 Foley Blvd, Coon Rapids, MN 55448 (server-side only, never exposed)
 export const ORIGIN_COORDS = { lat: 45.159887, lng: -93.275209 };
@@ -721,6 +731,7 @@ export default {
 
           // 4. AUTO-RESPONSE TO CUSTOMER (Optional)
           try {
+            const customerDeliveryBlock = buildCustomerDeliveryBlock(pickup_required, delivery_address);
             await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: {
@@ -735,6 +746,7 @@ export default {
                   <div style="font-family: sans-serif; max-width: 600px; padding: 30px; color: #333; line-height: 1.6;">
                     <h2 style="color: #0b1a14;">Hi ${escapeHtml(name)}, I've received your request!</h2>
                     <p>Thanks for reaching out. I'm currently reviewing the details of your <strong>${escapeHtml(equipment)}</strong> repair and I'll be in touch shortly via phone or email to discuss the next steps.</p>
+                    ${customerDeliveryBlock}
                     
                     <h3 style="color: #d92d20; margin-top: 30px;">How It Works:</h3>
                     <ul style="padding-left: 20px;">
