@@ -35,6 +35,18 @@ describe('calculateFee', () => {
     expect(r.estimate).toBeNull();
     expect(r.outOfRange).toBe(true);
   });
+
+  it('rejects negative input', () => {
+    const r = calculateFee(-5);
+    expect(r.estimate).toBeNull();
+    expect(r.outOfRange).toBe(true);
+  });
+
+  it('rejects non-finite input', () => {
+    expect(calculateFee(NaN).estimate).toBeNull();
+    expect(calculateFee(Infinity).estimate).toBeNull();
+    expect(calculateFee(undefined).estimate).toBeNull();
+  });
 });
 
 describe('matchServiceArea', () => {

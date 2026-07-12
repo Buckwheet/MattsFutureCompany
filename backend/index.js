@@ -59,6 +59,9 @@ export function matchServiceArea(city) {
 }
 
 export function calculateFee(oneWayMiles) {
+  if (!Number.isFinite(oneWayMiles) || oneWayMiles < 0) {
+    return { estimate: null, roundTripMiles: 0, outOfRange: true };
+  }
   const roundTripMiles = oneWayMiles * 2;
   if (oneWayMiles > 20) {
     return { estimate: null, roundTripMiles, outOfRange: true };
