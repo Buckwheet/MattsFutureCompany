@@ -461,6 +461,7 @@
             <div class="delivery-manual" id="delivery-manual" hidden>
               <label for="delivery_address">Delivery Address</label>
               <input type="text" id="delivery_address" name="delivery_address" placeholder="Street, City, ZIP">
+              <small class="delivery-verify-hint">📍 Please verify your delivery address is correct — you can edit it if needed.</small>
             </div>
             <div class="delivery-estimate" id="delivery-estimate"></div>
             <input type="hidden" id="delivery_lat" name="delivery_lat">
@@ -687,6 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
       (pos) => {
         latInput.value = pos.coords.latitude;
         lngInput.value = pos.coords.longitude;
+        if (deliveryManual) deliveryManual.hidden = false;
         fetchEstimate({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       () => {
