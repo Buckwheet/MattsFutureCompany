@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { calculateFee, matchServiceArea, SERVICE_AREA_CITIES, buildEstimate } from '../index.js';
+import { calculateFee, matchServiceArea, SERVICE_AREA_CITIES, buildEstimate, buildCustomerDeliveryBlock } from '../index.js';
 
 describe('calculateFee', () => {
   it('charges $1.50/mi round trip at 3 mi one-way', () => {
@@ -109,5 +109,32 @@ describe('buildEstimate', () => {
     expect(geocodeUrl).toContain('boundary.circle.lat=45.159887');
     expect(geocodeUrl).toContain('boundary.circle.lon=-93.275209');
     expect(geocodeUrl).toContain('boundary.circle.radius=64');
+  });
+});
+
+describe('buildCustomerDeliveryBlock', () => {
+  it('returns empty string when pickup not requested', () => {
+    expect(buildCustomerDeliveryBlock('No', '123 Main St')).toBe('');
+    expect(buildCustomerDeliveryBlock(undefined, '123 Main St')).toBe('');
+  });
+
+  it('shows the address and verify note when address present', () => {
+    const html = buildCustomerDeliveryBlock('Yes', '7323 Peltier Circle, Blaine, MN');
+    expect(html).toContain('Pickup/Delivery Address on file');
+    expect(html).toContain('7323 Peltier Circle, Blaine, MN');
+    expect(html).toContain('Please make sure this address is correct');
+  });
+
+  it('shows a fallback when pickup requested but no address', () => {
+    const html = buildCustomerDeliveryBlock('Yes', '');
+    expect(html).toContain('Pickup/Delivery requested');
+    expect(html).toContain("I'll confirm your address");
+    expect(html).not.toContain('Address on file');
+  });
+
+  it('escapes HTML in the address', () => {
+    const html = buildCustomerDeliveryBlock('Yes', '<script>x</script>');
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).not.toContain('<script>x</script>');
   });
 });
