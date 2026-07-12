@@ -31,6 +31,16 @@ function corsResponse(data, status = 200, headers = {}) {
   });
 }
 
+// Escape user-provided values before embedding in HTML emails
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Base64Url decode helper for JWT parsing
 function base64UrlDecode(str) {
   str = str.replace(/-/g, '+').replace(/_/g, '/');
@@ -147,10 +157,13 @@ export default {
 
     // Helper to enforce Cloudflare Access authentication
     const requireAuth = async () => {
-      // In local development, if CLOUDFLARE_ACCESS_AUD is not configured, we allow bypass
-      if (!env.CLOUDFLARE_ACCESS_AUD) {
-        console.warn("Bypassing Access check: CLOUDFLARE_ACCESS_AUD is not set (Local Dev)");
+      // Only bypass in explicit local dev — never fail open in production.
+      if (env.ENVIRONMENT === 'dev') {
+        console.warn("Bypassing Access check: ENVIRONMENT=dev (Local Dev)");
         return true;
+      }
+      if (!env.CLOUDFLARE_ACCESS_AUD) {
+        throw new Error('Unauthorized: Access is not configured');
       }
       const isValid = await verifyAccessJwt(request, env);
       if (!isValid) {
@@ -516,11 +529,11 @@ export default {
                 html: `
                   <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                     <h2 style="color: #0b1a14;">New Service Request</h2>
-                    <p><strong>Customer:</strong> ${name}</p>
-                    <p><strong>Phone:</strong> ${phone}</p>
-                    <p><strong>Equipment:</strong> ${equipment}</p>
-                    <p><strong>Pickup Required?</strong> ${pickup_required || 'No'}</p>
-                    <p><strong>Issue:</strong> ${issue}</p>
+                    <p><strong>Customer:</strong> ${escapeHtml(name)}</p>
+                    <p><strong>Phone:</strong> ${escapeHtml(phone)}</p>
+                    <p><strong>Equipment:</strong> ${escapeHtml(equipment)}</p>
+                    <p><strong>Pickup Required?</strong> ${escapeHtml(pickup_required || 'No')}</p>
+                    <p><strong>Issue:</strong> ${escapeHtml(issue)}</p>
                     
                     <div style="margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
                       <a href="https://dashboard.stripe.com/quotes/create?customer=${stripeCustomer.id}" 
@@ -555,8 +568,8 @@ export default {
                 subject: `🔧 Request Received: Repairing your ${equipment}`,
                 html: `
                   <div style="font-family: sans-serif; max-width: 600px; padding: 30px; color: #333; line-height: 1.6;">
-                    <h2 style="color: #0b1a14;">Hi ${name}, I've received your request!</h2>
-                    <p>Thanks for reaching out. I'm currently reviewing the details of your <strong>${equipment}</strong> repair and I'll be in touch shortly via phone or email to discuss the next steps.</p>
+                    <h2 style="color: #0b1a14;">Hi ${escapeHtml(name)}, I've received your request!</h2>
+                    <p>Thanks for reaching out. I'm currently reviewing the details of your <strong>${escapeHtml(equipment)}</strong> repair and I'll be in touch shortly via phone or email to discuss the next steps.</p>
                     
                     <h3 style="color: #d92d20; margin-top: 30px;">How It Works:</h3>
                     <ul style="padding-left: 20px;">
