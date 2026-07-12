@@ -77,9 +77,15 @@ export function calculateFee(oneWayMiles) {
 const METERS_PER_MILE = 1609.344;
 
 async function orsGeocode(env, address) {
+  // Bias + hard-filter geocoding to the service metro so vague input
+  // (e.g. "Blaine, MN") resolves locally instead of a same-named distant city.
+  // Pelias boundary.circle.radius is in KM; 40 mi service coverage ≈ 64 km.
   const res = await fetch(
     `https://api.openrouteservice.org/geocode/search?api_key=${env.ORS_API_KEY}` +
-    `&text=${encodeURIComponent(address)}&boundary.country=US&size=1`
+    `&text=${encodeURIComponent(address)}&boundary.country=US&size=1` +
+    `&focus.point.lat=${ORIGIN_COORDS.lat}&focus.point.lon=${ORIGIN_COORDS.lng}` +
+    `&boundary.circle.lat=${ORIGIN_COORDS.lat}&boundary.circle.lon=${ORIGIN_COORDS.lng}` +
+    `&boundary.circle.radius=64`
   );
   if (!res.ok) throw new Error('Geocode failed');
   const data = await res.json();
