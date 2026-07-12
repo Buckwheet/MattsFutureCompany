@@ -39,6 +39,9 @@ jobs:
           echo "${{ secrets.STRIPE_SECRET_KEY }}" | npx wrangler secret put STRIPE_SECRET_KEY
           echo "${{ secrets.STRIPE_WEBHOOK_SECRET }}" | npx wrangler secret put STRIPE_WEBHOOK_SECRET
           echo "${{ secrets.CLOUDFLARE_ACCESS_AUD }}" | npx wrangler secret put CLOUDFLARE_ACCESS_AUD
+          if [ -n "${{ secrets.ORS_API_KEY }}" ]; then
+            echo "${{ secrets.ORS_API_KEY }}" | npx wrangler secret put ORS_API_KEY
+          fi
           if [ -n "${{ secrets.RESEND_API_KEY }}" ]; then
             echo "${{ secrets.RESEND_API_KEY }}" | npx wrangler secret put RESEND_API_KEY
           fi
