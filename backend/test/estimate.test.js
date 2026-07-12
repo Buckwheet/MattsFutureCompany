@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { calculateFee, matchServiceArea, SERVICE_AREA_CITIES, buildEstimate } from '../index.js';
 
 describe('calculateFee', () => {
@@ -69,6 +69,7 @@ describe('matchServiceArea', () => {
 });
 
 describe('buildEstimate', () => {
+  afterEach(() => { vi.restoreAllMocks(); });
   const env = { ORS_API_KEY: 'test-key' };
 
   it('builds an estimate from coordinates with mocked ORS', async () => {
@@ -84,5 +85,7 @@ describe('buildEstimate', () => {
     expect(r.city).toBe('Blaine');
     expect(r.inServiceArea).toBe(true);
     expect(r.mapLink).toContain('45.16');
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenNthCalledWith(1, expect.stringContaining('/v2/matrix/driving-car'), expect.objectContaining({ method: 'POST' }));
   });
 });

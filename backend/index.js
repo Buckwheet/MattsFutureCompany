@@ -668,8 +668,8 @@ export default {
               ? `<div style="margin-top: 15px; padding: 12px; background: #f6f9f7; border-radius: 8px;">
                    <p style="margin: 0 0 6px;"><strong>🚚 Delivery Requested</strong></p>
                    <p style="margin: 4px 0;"><strong>Address:</strong> ${escapeHtml(delivery_address || 'Not provided')}</p>
-                   <p style="margin: 4px 0;"><strong>Distance (one-way):</strong> ${escapeHtml(distance_miles != null ? distance_miles + ' mi' : 'N/A')}</p>
-                   <p style="margin: 4px 0;"><strong>Estimated Fee:</strong> ${escapeHtml(estimate != null ? '$' + estimate : 'Call to confirm')}</p>
+                   <p style="margin: 4px 0;"><strong>Distance (one-way):</strong> ${escapeHtml(distance_miles != null && distance_miles !== '' ? distance_miles + ' mi' : 'N/A')}</p>
+                   <p style="margin: 4px 0;"><strong>Estimated Fee:</strong> ${escapeHtml(estimate != null && estimate !== '' ? '$' + estimate : 'Call to confirm')}</p>
                    ${mapLink ? `<p style="margin: 4px 0;"><a href="${mapLink}">📍 View pickup location</a></p>` : ''}
                  </div>`
               : '';
