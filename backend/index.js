@@ -41,6 +41,36 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+// --- Delivery estimate constants & pure helpers ---
+// Origin: 10450 Foley Blvd, Coon Rapids, MN 55448 (server-side only, never exposed)
+export const ORIGIN_COORDS = { lat: 45.1701, lng: -93.2969 };
+
+export const SERVICE_AREA_CITIES = [
+  'Coon Rapids', 'Blaine', 'Andover', 'Anoka', 'Ham Lake', 'Fridley',
+  'Spring Lake Park', 'Ramsey', 'Champlin', 'Brooklyn Park', 'Lino Lakes',
+  'East Bethel', 'Maple Grove', 'Elk River'
+];
+
+const _normalizedCities = SERVICE_AREA_CITIES.map(c => c.toLowerCase());
+
+export function matchServiceArea(city) {
+  if (!city || typeof city !== 'string') return false;
+  return _normalizedCities.includes(city.trim().toLowerCase());
+}
+
+export function calculateFee(oneWayMiles) {
+  const roundTripMiles = oneWayMiles * 2;
+  if (oneWayMiles > 20) {
+    return { estimate: null, roundTripMiles, outOfRange: true };
+  }
+  const rate = oneWayMiles <= 5 ? 1.5 : 2.0;
+  return {
+    estimate: Math.round(rate * roundTripMiles * 100) / 100,
+    roundTripMiles,
+    outOfRange: false
+  };
+}
+
 // Base64Url decode helper for JWT parsing
 function base64UrlDecode(str) {
   str = str.replace(/-/g, '+').replace(/_/g, '/');
