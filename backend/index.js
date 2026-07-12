@@ -658,8 +658,11 @@ export default {
               ? `<a href="https://squareup.com/dashboard/appointments/calendar/book?customer_id=${squareCustomerId}" style="background: #006aff; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">Schedule (Square)</a>`
               : `<span style="color: #666; font-size: 0.8rem;">(Square Sync Disabled)</span>`;
 
-            const mapLink = (delivery_lat != null && delivery_lng != null)
-              ? `https://www.openstreetmap.org/?mlat=${delivery_lat}&mlon=${delivery_lng}#map=16/${delivery_lat}/${delivery_lng}`
+            const latNum = Number(delivery_lat);
+            const lngNum = Number(delivery_lng);
+            const hasValidCoords = Number.isFinite(latNum) && Number.isFinite(lngNum);
+            const mapLink = hasValidCoords
+              ? `https://www.openstreetmap.org/?mlat=${latNum}&mlon=${lngNum}#map=16/${latNum}/${lngNum}`
               : '';
             const deliveryBlock = (pickup_required === 'Yes')
               ? `<div style="margin-top: 15px; padding: 12px; background: #f6f9f7; border-radius: 8px;">
