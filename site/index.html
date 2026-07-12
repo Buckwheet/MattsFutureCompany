@@ -653,19 +653,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const estimateInput = document.getElementById('estimate');
   const distanceInput = document.getElementById('distance_miles');
 
+  function escapeText(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
   function renderEstimate(r) {
     if (!r || r.error) { deliveryEstimateEl.textContent = ''; return; }
-    estimateInput.value = r.estimate != null ? r.estimate : '';
     distanceInput.value = r.oneWayMiles != null ? r.oneWayMiles : '';
     if (r.deliveryAddress && !deliveryAddressInput.value) deliveryAddressInput.value = r.deliveryAddress;
     deliveryEstimateEl.classList.toggle('in-area', !!r.inServiceArea);
     if (r.outOfRange) {
+      estimateInput.value = '';
       deliveryEstimateEl.innerHTML = 'Outside standard service area — <span class="muted">call to confirm.</span>';
     } else if (r.estimate != null) {
-      const area = r.inServiceArea && r.city ? ` <span class="muted">✓ ${r.city} is in my service area!</span>` : '';
+      estimateInput.value = r.estimate;
+      const area = r.inServiceArea && r.city ? ` <span class="muted">✓ ${escapeText(r.city)} is in my service area!</span>` : '';
       deliveryEstimateEl.innerHTML =
         `Estimated pickup &amp; delivery: ~$${r.estimate.toFixed(2)} <span class="muted">(confirmed upon scheduling)</span>${area}`;
     } else {
+      estimateInput.value = '';
       deliveryEstimateEl.textContent = '';
     }
   }
