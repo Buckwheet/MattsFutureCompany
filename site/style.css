@@ -560,6 +560,7 @@ footer p { font-size: 0.9rem; color: rgba(255,255,255,0.5); margin: 0; }
 }
 
 .delivery-section { margin-top: 12px; }
+.delivery-section[hidden] { display: none !important; }
 .delivery-manual { margin-top: 12px; }
 .delivery-estimate {
   margin-top: 12px;
