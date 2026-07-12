@@ -88,4 +88,26 @@ describe('buildEstimate', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(fetch).toHaveBeenNthCalledWith(1, expect.stringContaining('/v2/matrix/driving-car'), expect.objectContaining({ method: 'POST' }));
   });
+
+  it('constrains geocoding to the service metro (focus + boundary circle)', async () => {
+    const geocode = { features: [{
+      geometry: { coordinates: [-93.23, 45.16] },
+      properties: { locality: 'Blaine', label: '123 Main St, Blaine, MN, USA' }
+    }] };
+    const matrix = { distances: [[12875]] };
+    const reverse = { features: [{ properties: { locality: 'Blaine', label: '123 Main St, Blaine, MN, USA' } }] };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => geocode })   // geocode (address path)
+      .mockResolvedValueOnce({ ok: true, json: async () => matrix })    // matrix
+      .mockResolvedValueOnce({ ok: true, json: async () => reverse });  // reverse geocode
+
+    await buildEstimate({ ORS_API_KEY: 'test-key' }, { address: 'Blaine, MN' });
+
+    const geocodeUrl = global.fetch.mock.calls[0][0];
+    expect(geocodeUrl).toContain('focus.point.lat=45.159887');
+    expect(geocodeUrl).toContain('focus.point.lon=-93.275209');
+    expect(geocodeUrl).toContain('boundary.circle.lat=45.159887');
+    expect(geocodeUrl).toContain('boundary.circle.lon=-93.275209');
+    expect(geocodeUrl).toContain('boundary.circle.radius=64');
+  });
 });
