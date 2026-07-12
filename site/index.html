@@ -724,9 +724,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (deliveryAddressInput) {
-    deliveryAddressInput.addEventListener('blur', () => {
+    let addrTimer;
+    let lastQueried = '';
+    const recalc = () => {
       const addr = deliveryAddressInput.value.trim();
-      if (addr.length > 4) { latInput.value = ''; lngInput.value = ''; fetchEstimate({ address: addr }); }
+      if (addr.length > 4 && addr !== lastQueried) {
+        lastQueried = addr;
+        latInput.value = '';
+        lngInput.value = '';
+        fetchEstimate({ address: addr });
+      }
+    };
+    deliveryAddressInput.addEventListener('input', () => {
+      clearTimeout(addrTimer);
+      addrTimer = setTimeout(recalc, 700);
+    });
+    deliveryAddressInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); clearTimeout(addrTimer); recalc(); }
+    });
+    deliveryAddressInput.addEventListener('blur', () => {
+      clearTimeout(addrTimer);
+      recalc();
     });
   }
 
