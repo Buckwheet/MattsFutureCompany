@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { calculateFee, matchServiceArea, SERVICE_AREA_CITIES } from '../index.js';
+import { describe, it, expect, vi } from 'vitest';
+import { calculateFee, matchServiceArea, SERVICE_AREA_CITIES, buildEstimate } from '../index.js';
 
 describe('calculateFee', () => {
   it('charges $1.50/mi round trip at 3 mi one-way', () => {
@@ -65,5 +65,24 @@ describe('matchServiceArea', () => {
   });
   it('exposes 14 service-area cities', () => {
     expect(SERVICE_AREA_CITIES).toHaveLength(14);
+  });
+});
+
+describe('buildEstimate', () => {
+  const env = { ORS_API_KEY: 'test-key' };
+
+  it('builds an estimate from coordinates with mocked ORS', async () => {
+    const distances = { distances: [[12875]] }; // meters origin->dest (~8 mi)
+    const reverse = { features: [{ properties: { locality: 'Blaine', label: '123 Main St, Blaine, MN 55434' } }] };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => distances })   // matrix
+      .mockResolvedValueOnce({ ok: true, json: async () => reverse });    // reverse geocode
+
+    const r = await buildEstimate(env, { lat: 45.16, lng: -93.23 });
+    expect(r.oneWayMiles).toBeCloseTo(8.0, 1);
+    expect(r.estimate).toBeCloseTo(32.0, 0);
+    expect(r.city).toBe('Blaine');
+    expect(r.inServiceArea).toBe(true);
+    expect(r.mapLink).toContain('45.16');
   });
 });
