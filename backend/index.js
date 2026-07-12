@@ -579,7 +579,10 @@ export default {
     if (url.pathname === '/' && request.method === 'POST') {
       try {
         const data = await request.json();
-        const { name, email, phone, equipment, issue, pickup_required } = data;
+        const {
+          name, email, phone, equipment, issue, pickup_required,
+          delivery_address, delivery_lat, delivery_lng, estimate, distance_miles
+        } = data;
 
         // Basic input validations
         if (!name || !email || !phone || !equipment || !issue) {
@@ -655,6 +658,19 @@ export default {
               ? `<a href="https://squareup.com/dashboard/appointments/calendar/book?customer_id=${squareCustomerId}" style="background: #006aff; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">Schedule (Square)</a>`
               : `<span style="color: #666; font-size: 0.8rem;">(Square Sync Disabled)</span>`;
 
+            const mapLink = (delivery_lat != null && delivery_lng != null)
+              ? `https://www.openstreetmap.org/?mlat=${delivery_lat}&mlon=${delivery_lng}#map=16/${delivery_lat}/${delivery_lng}`
+              : '';
+            const deliveryBlock = (pickup_required === 'Yes')
+              ? `<div style="margin-top: 15px; padding: 12px; background: #f6f9f7; border-radius: 8px;">
+                   <p style="margin: 0 0 6px;"><strong>🚚 Delivery Requested</strong></p>
+                   <p style="margin: 4px 0;"><strong>Address:</strong> ${escapeHtml(delivery_address || 'Not provided')}</p>
+                   <p style="margin: 4px 0;"><strong>Distance (one-way):</strong> ${escapeHtml(distance_miles != null ? distance_miles + ' mi' : 'N/A')}</p>
+                   <p style="margin: 4px 0;"><strong>Estimated Fee:</strong> ${escapeHtml(estimate != null ? '$' + estimate : 'Call to confirm')}</p>
+                   ${mapLink ? `<p style="margin: 4px 0;"><a href="${mapLink}">📍 View pickup location</a></p>` : ''}
+                 </div>`
+              : '';
+
             await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: {
@@ -673,6 +689,7 @@ export default {
                     <p><strong>Equipment:</strong> ${escapeHtml(equipment)}</p>
                     <p><strong>Pickup Required?</strong> ${escapeHtml(pickup_required || 'No')}</p>
                     <p><strong>Issue:</strong> ${escapeHtml(issue)}</p>
+                    ${deliveryBlock}
                     
                     <div style="margin-top: 30px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
                       <a href="https://dashboard.stripe.com/quotes/create?customer=${stripeCustomer.id}" 
