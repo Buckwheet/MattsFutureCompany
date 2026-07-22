@@ -7,11 +7,13 @@
 
 ## 🔴 HIGH Priority
 
-- [ ] **1. Quantity adjustment churns Stripe prices**
+- [x] **1. Quantity adjustment churns Stripe prices**
   `parts-manager/src/App.jsx:121` — `handleAdjustQty` POSTs the full part (incl. `stripe_product_id`) on every +/- click. Backend (`backend/index.js:380-394`) then creates a NEW Stripe price + updates the product on every click, leaving orphaned prices. Fix: dedicated qty-only endpoint, or only re-price when `price` actually changed.
+  **DONE:** Added dedicated `/api/parts/adjust-quantity` endpoint for quantity increments/decrements, bypassing Stripe calls entirely. Optimized `/api/parts` updates to only update price on Stripe if the numeric value actually changed.
 
-- [ ] **2. Webhook is not idempotent**
+- [x] **2. Webhook is not idempotent**
   `backend/index.js:180-209` — Stripe redelivers events (at-least-once). No dedupe on `event.id`, so redelivered `checkout.session.completed` deducts inventory twice. Also `checkout.session.completed` + `invoice.paid` for one sale = double deduction. Fix: track processed `event.id`s in D1, and/or handle only one event type.
+  **DONE:** Created `processed_stripe_events` table in SQLite D1. Webhook now tracks processed `event.id`s, `session.id`s, and `invoice.id`s. Checkout sessions that generate invoices are skipped during checkout event handling and only deducted on the paid invoice event to avoid double deductions.
 
 ---
 
@@ -29,10 +31,10 @@
 
 ## 🟢 LOW Priority
 
-- [ ] **5. UPC not URL-encoded** — `backend/index.js:256`: wrap `upc` in `encodeURIComponent` before fetch URL.
-- [ ] **6. Rate limit map never evicts** — `backend/index.js:124`: `rateLimitMap` grows unbounded over isolate lifetime. Add periodic cleanup.
-- [ ] **7. Upload lacks validation** — `backend/index.js:298`: no file size/type limits; `ext` only handles png vs jpg (HEIC → `.jpg`).
-- [ ] **8. Broken UTF-8 char** — `site/index.html:220`: `<span class="trust-icon">�</span>` (mojibake icon).
-- [ ] **9. Modal title hardcoded** — `parts-manager/src/App.jsx:271`: always "Add New Part" even when editing.
+- [x] **5. UPC not URL-encoded** — `backend/index.js:256`: wrap `upc` in `encodeURIComponent` before fetch URL.
+- [x] **6. Rate limit map never evicts** — `backend/index.js:124`: `rateLimitMap` grows unbounded over isolate lifetime. Add periodic cleanup.
+- [x] **7. Upload lacks validation** — `backend/index.js:298`: no file size/type limits; `ext` only handles png vs jpg (HEIC → `.jpg`).
+- [x] **8. Broken UTF-8 char** — `site/index.html:220`: `<span class="trust-icon"></span>` (mojibake icon).
+- [x] **9. Modal title hardcoded** — `parts-manager/src/App.jsx:271`: always "Add New Part" even when editing.
 - [ ] **10. Inconsistent email recipients** — leads → `matt@petersonsmallenginerepair.com`; health report → `mattssmallenginerep@gmail.com`. Confirm both inboxes are monitored.
-- [ ] **11. Compatibility-date mismatch** — root `wrangler.toml` (`2026-06-25`) vs backend (`2026-05-02`). Harmless; align for consistency.
+- [x] **11. Compatibility-date mismatch** — root `wrangler.toml` (`2026-06-25`) vs backend (`2026-05-02`). Harmless; align for consistency.

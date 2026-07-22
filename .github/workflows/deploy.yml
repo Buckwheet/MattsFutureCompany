@@ -32,7 +32,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: backend
-          command: deploy --name=peterson-backend --compatibility-date=2026-05-02
+          command: deploy --name=peterson-backend --compatibility-date=2026-06-25
 
       - name: Set Worker Secrets
         run: |

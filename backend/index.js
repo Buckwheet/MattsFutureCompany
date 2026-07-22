@@ -267,10 +267,25 @@ async function verifyAccessJwt(request, env) {
 }
 
 const rateLimitMap = new Map();
+let lastCleanup = Date.now();
 
 function checkRateLimit(ip, maxRequests = 5, windowMs = 60000) {
   const now = Date.now();
   const windowStart = now - windowMs;
+
+  // Periodically evict fully expired IP entries (every 10 minutes)
+  if (now - lastCleanup > 600000) {
+    lastCleanup = now;
+    for (const [key, timestamps] of rateLimitMap.entries()) {
+      const valid = timestamps.filter(t => t > windowStart);
+      if (valid.length === 0) {
+        rateLimitMap.delete(key);
+      } else {
+        rateLimitMap.set(key, valid);
+      }
+    }
+  }
+
   const recent = rateLimitMap.get(ip) || [];
   const valid = recent.filter(t => t > windowStart);
   if (valid.length >= maxRequests) return false;
@@ -325,21 +340,57 @@ export default {
         // Workers only have async Web Crypto — the sync constructEvent throws here.
         event = await stripe.webhooks.constructEventAsync(bodyText, signature, env.STRIPE_WEBHOOK_SECRET);
 
+        // Check if event.id has already been processed
+        const eventCheck = await env.DB.prepare("SELECT 1 FROM processed_stripe_events WHERE id = ?").bind(event.id).first();
+        if (eventCheck) {
+          console.log(`Event ${event.id} already processed. Skipping.`);
+          return corsResponse({ received: true }, 200, corsHeaders);
+        }
+
         if (event.type === 'checkout.session.completed') {
           const session = event.data.object;
-          const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-
-          for (const item of lineItems.data) {
-            await env.DB.prepare(`
-              UPDATE parts
-              SET quantity = MAX(0, quantity - ?)
-              WHERE stripe_product_id = ?
-            `).bind(item.quantity, item.price.product).run();
+          
+          // If this session created an invoice, we skip it here and let invoice.paid handle it.
+          if (session.invoice) {
+            console.log(`Checkout session ${session.id} has invoice ${session.invoice}. Skipping to let invoice.paid handle it.`);
+            await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
+            return corsResponse({ received: true }, 200, corsHeaders);
           }
+
+          // Check if session.id has already been processed
+          const sessionCheck = await env.DB.prepare("SELECT 1 FROM processed_stripe_events WHERE id = ?").bind(session.id).first();
+          if (sessionCheck) {
+            console.log(`Checkout session ${session.id} already processed. Skipping.`);
+            await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
+            return corsResponse({ received: true }, 200, corsHeaders);
+          }
+
+          const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+          for (const item of lineItems.data) {
+            if (item.price && item.price.product) {
+              await env.DB.prepare(`
+                UPDATE parts
+                SET quantity = MAX(0, quantity - ?)
+                WHERE stripe_product_id = ?
+              `).bind(item.quantity, item.price.product).run();
+            }
+          }
+
+          // Record session.id and event.id as processed
+          await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(session.id).run();
+          await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
         }
 
         if (event.type === 'invoice.paid') {
           const invoice = event.data.object;
+
+          // Check if invoice.id has already been processed
+          const invoiceCheck = await env.DB.prepare("SELECT 1 FROM processed_stripe_events WHERE id = ?").bind(invoice.id).first();
+          if (invoiceCheck) {
+            console.log(`Invoice ${invoice.id} already processed. Skipping.`);
+            await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
+            return corsResponse({ received: true }, 200, corsHeaders);
+          }
 
           if (!invoice.lines || !invoice.lines.data) {
             console.log('invoice.paid: no line items, skipping inventory deduction');
@@ -354,6 +405,10 @@ export default {
               }
             }
           }
+
+          // Record invoice.id and event.id as processed
+          await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(invoice.id).run();
+          await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
         }
         
         return corsResponse({ received: true }, 200, corsHeaders);
@@ -401,7 +456,7 @@ export default {
         
         let data;
         for (let attempt = 1; attempt <= 3; attempt++) {
-          const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${upc}`);
+          const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${encodeURIComponent(upc)}`);
           if (res.status === 429) {
             if (attempt < 3) {
               await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
@@ -446,8 +501,21 @@ export default {
     if (url.pathname === '/api/upload' && request.method === 'POST') {
       try {
         await requireAuth();
-        const contentType = request.headers.get('Content-Type') || 'image/jpeg';
-        const ext = contentType === 'image/png' ? '.png' : '.jpg';
+        const contentType = request.headers.get('Content-Type') || '';
+        if (!contentType.startsWith('image/')) {
+          return corsResponse({ error: 'Only image uploads are allowed' }, 400, corsHeaders);
+        }
+        const contentLength = parseInt(request.headers.get('Content-Length') || '0');
+        if (contentLength > 10 * 1024 * 1024) { // 10MB limit
+          return corsResponse({ error: 'Image size cannot exceed 10MB' }, 400, corsHeaders);
+        }
+
+        let ext = '.jpg';
+        if (contentType === 'image/png') ext = '.png';
+        else if (contentType === 'image/gif') ext = '.gif';
+        else if (contentType === 'image/webp') ext = '.webp';
+        else if (contentType === 'image/heic') ext = '.heic';
+
         const key = `part_${Date.now()}${ext}`;
         await env.PHOTOS.put(key, request.body, {
           httpMetadata: { contentType }
@@ -481,6 +549,23 @@ export default {
       } catch (e) {
         const isAuthError = e.message.includes('Unauthorized');
         return corsResponse({ error: isAuthError ? e.message : 'Delete failed' }, isAuthError ? 401 : 500, corsHeaders);
+      }
+    }
+
+    // --- ROUTE: POST /api/parts/adjust-quantity (Adjust Quantity Only) ---
+    if (url.pathname === '/api/parts/adjust-quantity' && request.method === 'POST') {
+      try {
+        await requireAuth();
+        const { id, quantity } = await request.json();
+        const numQuantity = parseInt(quantity);
+        if (isNaN(numQuantity) || numQuantity < 0) {
+          return corsResponse({ error: 'Quantity must be a non-negative integer' }, 400, corsHeaders);
+        }
+        await env.DB.prepare("UPDATE parts SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(numQuantity, id).run();
+        return corsResponse({ success: true }, 200, corsHeaders);
+      } catch (e) {
+        const isAuthError = e.message.includes('Unauthorized');
+        return corsResponse({ error: isAuthError ? e.message : 'Adjustment failed' }, isAuthError ? 401 : 500, corsHeaders);
       }
     }
 
@@ -532,14 +617,19 @@ export default {
             images: image_url ? [image_url] : [],
             metadata: { sku, upc }
           });
-          const newPrice = await stripe.prices.create({
-            product: stripeProductId,
-            currency: 'usd',
-            unit_amount: Math.round(numPrice * 100),
-          });
-          await stripe.products.update(stripeProductId, {
-            default_price: newPrice.id,
-          });
+          // Only create new price in Stripe if the price actually changed
+          const existingPart = await env.DB.prepare("SELECT price FROM parts WHERE stripe_product_id = ?").bind(stripeProductId).first();
+          const oldPrice = existingPart ? parseFloat(existingPart.price) : null;
+          if (oldPrice === null || Math.round(oldPrice * 100) !== Math.round(numPrice * 100)) {
+            const newPrice = await stripe.prices.create({
+              product: stripeProductId,
+              currency: 'usd',
+              unit_amount: Math.round(numPrice * 100),
+            });
+            await stripe.products.update(stripeProductId, {
+              default_price: newPrice.id,
+            });
+          }
         }
 
         // 2. Save to D1
@@ -548,7 +638,10 @@ export default {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(sku) DO UPDATE SET
             name=excluded.name,
+            upc=excluded.upc,
+            description=excluded.description,
             quantity=excluded.quantity,
+            reorder_point=excluded.reorder_point,
             price=excluded.price,
             image_url=excluded.image_url,
             updated_at=CURRENT_TIMESTAMP

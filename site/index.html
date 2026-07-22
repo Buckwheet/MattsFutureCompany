@@ -132,8 +132,8 @@
       </div>
     </div>
     
-    <!-- Slide 2 -->
-    <div class="slide" style="background-image: url('images/spring.png');">
+    <!-- Slide 2: Spring Special (April 1 - July 1) -->
+    <div class="slide" data-start-month="4" data-start-day="1" data-end-month="7" data-end-day="1" style="background-image: url('images/spring.png');">
       <div class="slide-overlay"></div>
       <div class="slide-content">
         <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Spring Special</span>
@@ -141,6 +141,45 @@
         <p>Get ready for mowing season! Includes oil change, new spark plug, air filter replacement, and blade sharpening — everything your riding mower or zero-turn needs to tackle the season.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary">Book Your Tune-Up</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3: Summer Special (July 1 - September 1) -->
+    <div class="slide" data-start-month="7" data-start-day="1" data-end-month="9" data-end-day="1" style="background-image: url('images/summer.png');">
+      <div class="slide-overlay"></div>
+      <div class="slide-content">
+        <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Summer Special</span>
+        <h1>$89 Summer Maintenance</h1>
+        <p>Keep your mower running strong all summer! Get a quick check-up, fresh oil, new spark plug, and clean filters. Fast turnaround so you don't miss a single mow.</p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn btn-primary">Schedule Summer Service</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 4: Snow Blower Prep (September 1 - January 1) -->
+    <div class="slide" data-start-month="9" data-start-day="1" data-end-month="1" data-end-day="1" style="background-image: url('images/snow.png');">
+      <div class="slide-overlay"></div>
+      <div class="slide-content">
+        <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Fall Special</span>
+        <h1>$89 Snow Blower Prep</h1>
+        <p>Beat the winter snow! Pre-season snow blower tune-up. Includes oil change, spark plug check, skid shoe adjustments, carburetor cleaning, and belt inspection.</p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn btn-primary">Prepare For Snow</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: Mid-Winter Snow Blower Tune-Up (January 1 - April 1) -->
+    <div class="slide" data-start-month="1" data-start-day="1" data-end-month="4" data-end-day="1" style="background-image: url('images/snow.png');">
+      <div class="slide-overlay"></div>
+      <div class="slide-content">
+        <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Winter Special</span>
+        <h1>$89 Snow Blower Tune-Up</h1>
+        <p>Keep your snow blower clearing strong all winter! Includes oil change, new spark plug, skid shoe adjustments, scraper bar check, belt inspection, and carburetor clean. Beat the next big blizzard.</p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn btn-primary">Book Winter Service</a>
         </div>
       </div>
     </div>
@@ -202,22 +241,16 @@
     <button class="carousel-btn carousel-prev" aria-label="Previous Slide">❮</button>
     <button class="carousel-btn carousel-next" aria-label="Next Slide">❯</button>
     
-    <div class="carousel-dots">
-      <button class="dot active" aria-label="Go to slide 1"></button>
-      <button class="dot" aria-label="Go to slide 2"></button>
-      <button class="dot" aria-label="Go to slide 3"></button>
-      <button class="dot" aria-label="Go to slide 4"></button>
-      <button class="dot" aria-label="Go to slide 5"></button>
-    </div>
+    <div class="carousel-dots"></div>
   </header>
 
   <!-- Trust strip -->
   <section id="trust">
     <div class="wrap trust-inner">
-      <div class="trust-item"><span class="trust-icon">✓</span> Free Estimates</div>
-      <div class="trust-item"><span class="trust-icon">✓</span> $65 / Hour Labor</div>
-      <div class="trust-item"><span class="trust-icon">✓</span> Fast Turnaround</div>
-      <div class="trust-item"><span class="trust-icon">✓</span> Pickup & Delivery Available</div>
+      <div class="trust-item"><span class="trust-icon">&#10003;</span> Free Estimates</div>
+      <div class="trust-item"><span class="trust-icon">&#10003;</span> $65 / Hour Labor</div>
+      <div class="trust-item"><span class="trust-icon">&#10003;</span> Fast Turnaround</div>
+      <div class="trust-item"><span class="trust-icon">&#10003;</span> Pickup & Delivery Available</div>
     </div>
   </section>
 
@@ -541,30 +574,93 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, { passive: true });
 
-  // === Carousel Logic ===
+  // === Carousel Logic with Seasonal Date Gating ===
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1; // 1-12
+  const currentDay = now.getDate();
+  const todayVal = currentMonth * 100 + currentDay; // MMdd format
+
+  // Filter slides by active dates
+  document.querySelectorAll('.slide').forEach(slide => {
+    const startMAttr = slide.getAttribute('data-start-month');
+    const startDAttr = slide.getAttribute('data-start-day');
+    const endMAttr = slide.getAttribute('data-end-month');
+    const endDAttr = slide.getAttribute('data-end-day');
+
+    if (startMAttr && startDAttr && endMAttr && endDAttr) {
+      const startM = parseInt(startMAttr);
+      const startD = parseInt(startDAttr);
+      const endM = parseInt(endMAttr);
+      const endD = parseInt(endDAttr);
+
+      const startVal = startM * 100 + startD;
+      const endVal = endM * 100 + endD;
+
+      let isActive = false;
+      if (startVal < endVal) {
+        // Range does NOT cross year boundary (e.g., April 1 to July 1)
+        isActive = (todayVal >= startVal && todayVal < endVal);
+      } else {
+        // Range crosses year boundary (e.g., Sept 1 to Jan 1)
+        isActive = (todayVal >= startVal || todayVal < endVal);
+      }
+
+      if (!isActive) {
+        slide.remove();
+      }
+    }
+  });
+
+  // Re-query surviving slides
   const slides = document.querySelectorAll('.slide');
+  const dotsContainer = document.querySelector('.carousel-dots');
+  
+  // Dynamically generate dots
+  if (dotsContainer) {
+    dotsContainer.innerHTML = '';
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('button');
+      dot.className = 'dot';
+      dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
+      dotsContainer.appendChild(dot);
+    });
+  }
+
   const dots = document.querySelectorAll('.dot');
   const prevBtn = document.querySelector('.carousel-prev');
   const nextBtn = document.querySelector('.carousel-next');
   const hero = document.getElementById('hero');
-  
+
   if (slides.length > 0 && hero) {
     let currentSlide = 0;
     let slideInterval;
 
+    // Reset active classes on load (making first surviving slide active)
+    slides.forEach(s => s.classList.remove('active'));
+    if (dots.length > 0) dots.forEach(d => d.classList.remove('active'));
+
+    slides[0].classList.add('active');
+    if (dots.length > 0) dots[0].classList.add('active');
+
     const goToSlide = (index) => {
+      if (slides.length === 0) return;
       slides[currentSlide].classList.remove('active');
-      dots[currentSlide].classList.remove('active');
+      if (dots.length > currentSlide) dots[currentSlide].classList.remove('active');
+      
       currentSlide = (index + slides.length) % slides.length;
+      
       slides[currentSlide].classList.add('active');
-      dots[currentSlide].classList.add('active');
+      if (dots.length > currentSlide) dots[currentSlide].classList.add('active');
     };
 
     const nextSlide = () => goToSlide(currentSlide + 1);
     const prevSlide = () => goToSlide(currentSlide - 1);
 
     const startSlideshow = () => {
-      slideInterval = setInterval(nextSlide, 7000);
+      // Only start auto slideshow if there is more than 1 slide
+      if (slides.length > 1) {
+        slideInterval = setInterval(nextSlide, 7000);
+      }
     };
 
     const resetSlideshow = () => {

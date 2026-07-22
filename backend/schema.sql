@@ -19,3 +19,10 @@ CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE
 );
+
+-- Processed Stripe Events (Deduplication)
+CREATE TABLE IF NOT EXISTS processed_stripe_events (
+    id TEXT PRIMARY KEY,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+

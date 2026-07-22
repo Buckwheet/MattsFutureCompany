@@ -118,8 +118,8 @@ function App() {
   const handleAdjustQty = async (part, delta) => {
     const newQty = Math.max(0, part.quantity + delta);
     try {
-      await axios.post(`${API_BASE}/api/parts`, {
-        ...part,
+      await axios.post(`${API_BASE}/api/parts/adjust-quantity`, {
+        id: part.id,
         quantity: newQty
       });
       fetchParts();
@@ -268,7 +268,7 @@ function App() {
       {showAddModal && (
         <div className="modal-backdrop">
           <div className="modal">
-            <h2 style={{ marginTop: 0 }}>Add New Part</h2>
+            <h2 style={{ marginTop: 0 }}>{formData.id ? 'Edit Part' : 'Add New Part'}</h2>
             <form onSubmit={handleSave}>
               {/* Photo Upload Section */}
               <div className="form-group" style={{ textAlign: 'center' }}>

@@ -1,29 +1,43 @@
 # Project State
  
-**Goal:** Add "Pickup Required?" checkbox option to service request form and include response in lead notification emails.
+**Goal:** Address key code review findings (Stripe price adjustment churn, webhook idempotency, UPC url-encoding, rate-limit eviction, modal title edit).
  
 **What changed:**
-* Created premium styled "Pickup Required?" checkboxes (Yes/No) below the "How can I help?" textarea in index.html.
-* Restored full-width typing space for the textarea by stacking the checkbox field vertically underneath it.
-* Enforced mutual exclusivity on Yes/No checkboxes using JavaScript in index.html.
-* Implemented browser smooth-scroll override for contact links to align the bottom of the contact section (submit button) with the viewport bottom.
-* Updated backend Cloudflare Worker to parse and extract the `pickup_required` payload.
-* Rendered "Pickup Required?" status in lead notification emails in backend/index.js.
-* Cache busted the stylesheet by incrementing the query parameter to `v=1.0.8` in index.html.
+* Implemented Stripe Webhook idempotency and deduplication using SQLite processed events table to avoid double inventory deductions.
+* Added a dedicated backend quantity adjustment endpoint (`/api/parts/adjust-quantity`) and updated the frontend `parts-manager` dashboard to use it, preventing Stripe pricing API churn on quantity changes.
+* Optimized `/api/parts` POST updates to only generate new Stripe prices when the price actually changes.
+* Added size (10MB) and image content type validation to `/api/upload`.
+* URL-encoded the UPC barcode parameter in the lookup query.
+* Implemented periodic rate limit map eviction to prevent unbounded isolate memory growth.
+* Fixed broken UTF-8 encoding in the trust strip checkmarks by using HTML entities (`&#10003;`).
+* Dynamicized the modal header to display "Edit Part" or "Add New Part" depending on whether editing.
+* Aligned compatibility dates (`2026-06-25`) across backend wrangler.toml and GitHub deploy action.
+* Implemented recurring seasonal date gating for carousel cards in the frontend site using a math-based MMdd date comparison algorithm.
+* Created 4 dedicated seasonal special slides: Spring Special (Apr 1–Jul 1), Summer Special (Jul 1–Sep 1), Fall Special/Snow Blower Prep (Sep 1–Jan 1), and Winter Special/Mid-Winter Snow Blower Tune-Up (Jan 1–Apr 1).
+* Generated a stunning summer zero-turn mower hero image (`site/images/summer.png`) and integrated it into the Summer Special card.
+* Refactored carousel navigation indicator dots to be dynamically generated in JavaScript based on active slides.
+* Updated `CODE_REVIEW_FINDINGS.md` and `PROJECT_STATE.md` to track findings resolution.
  
 **Commands run + results:**
-* `git push` -> Commits and deploys the frontend and backend update via GitHub Actions CI/CD.
+* `npx wrangler d1 execute DB --local --file=schema.sql` -> Initialized local database tables.
+* `npm test` (in backend) -> All 19 vitest tests passed successfully.
+* `npm run build` (in parts-manager) -> Production build succeeded cleanly.
  
 **Files touched:**
-* `index.html`
-* `style.css`
+* `backend/schema.sql`
 * `backend/index.js`
+* `parts-manager/src/App.jsx`
+* `site/index.html`
+* `site/images/summer.png`
+* `backend/wrangler.toml`
+* `.github/workflows/deploy.yml`
+* `CODE_REVIEW_FINDINGS.md`
 * `PROJECT_STATE.md`
  
 **Next 3 actions:**
-* [ ] Set up Google Business Profile review automation flow.
-* [ ] Draft localized SEO copy additions directly for main index.html.
-* [ ] Manually submit a test lead from the live site to verify the pickup checkbox and email formatting.
+* [ ] Test client-side date gating transitions by mocking different Date objects in local dev mode.
+* [ ] Confirm email recipients with Matt (leads vs health reports inboxes).
+* [ ] Run staging/live webhook testing with Stripe CLI.
 
 
 
