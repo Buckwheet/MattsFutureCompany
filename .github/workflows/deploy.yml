@@ -26,6 +26,14 @@ jobs:
         run: npm install
         working-directory: backend
 
+      - name: Apply Backend D1 Migrations
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: backend
+          command: d1 migrations apply matts-parts-db --remote
+
       - name: Deploy Backend Worker
         uses: cloudflare/wrangler-action@v3
         with:

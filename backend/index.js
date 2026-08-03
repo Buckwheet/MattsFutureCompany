@@ -296,6 +296,7 @@ function checkRateLimit(ip, maxRequests = 5, windowMs = 60000) {
 
 export default {
   async fetch(request, env) {
+    try {
     const url = new URL(request.url);
     const stripe = new Stripe(env.STRIPE_SECRET_KEY);
     const corsHeaders = getCorsHeaders(request);
@@ -338,7 +339,20 @@ export default {
         }
 
         // Workers only have async Web Crypto — the sync constructEvent throws here.
-        event = await stripe.webhooks.constructEventAsync(bodyText, signature, env.STRIPE_WEBHOOK_SECRET);
+        try {
+          event = await stripe.webhooks.constructEventAsync(bodyText, signature, env.STRIPE_WEBHOOK_SECRET);
+        } catch (e) {
+          console.error('Webhook signature verification failed:', e.message);
+          return corsResponse({ error: 'Invalid webhook signature' }, 400, corsHeaders);
+        }
+
+        // Stripe may send many event types to this endpoint. Acknowledge events that
+        // do not affect inventory without requiring D1 or making unnecessary API calls.
+        const inventoryEventTypes = new Set(['checkout.session.completed', 'invoice.paid']);
+        if (!inventoryEventTypes.has(event.type)) {
+          console.log(`Ignoring unsupported Stripe event type: ${event.type}`);
+          return corsResponse({ received: true }, 200, corsHeaders);
+        }
 
         // Check if event.id has already been processed
         const eventCheck = await env.DB.prepare("SELECT 1 FROM processed_stripe_events WHERE id = ?").bind(event.id).first();
@@ -413,8 +427,8 @@ export default {
         
         return corsResponse({ received: true }, 200, corsHeaders);
       } catch (e) {
-        console.error('Webhook Error:', e.message);
-        return corsResponse({ error: 'Webhook processing failed' }, 400, corsHeaders);
+        console.error('Webhook processing error:', e.message);
+        return corsResponse({ error: 'Webhook processing failed' }, 500, corsHeaders);
       }
     }
 
@@ -871,6 +885,13 @@ export default {
     }
 
     return new Response('Not Found', { status: 404, headers: corsHeaders });
+    } catch (e) {
+      console.error('Unhandled Worker Error:', e?.message || e);
+      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
   },
 
   async scheduled(controller, env, ctx) {
