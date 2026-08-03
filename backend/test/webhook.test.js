@@ -72,4 +72,28 @@ describe('Stripe webhook', () => {
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ error: 'Webhook processing failed' });
   });
+
+  it('initializes the idempotency table for inventory events', async () => {
+    const statement = {
+      bind: vi.fn(function () { return this; }),
+      first: vi.fn().mockResolvedValue(null),
+      run: vi.fn().mockResolvedValue({ success: true }),
+    };
+    const db = { prepare: vi.fn(() => statement) };
+    const response = await worker.fetch(signedRequest({
+      id: 'evt_invoice',
+      type: 'invoice.paid',
+      data: {
+        object: {
+          id: 'in_test',
+          lines: { data: [] },
+        },
+      },
+    }), envWithDb(db));
+
+    expect(response.status).toBe(200);
+    expect(db.prepare.mock.calls[0][0]).toContain('CREATE TABLE IF NOT EXISTS processed_stripe_events');
+    expect(await response.json()).toEqual({ received: true });
+  });
+
 });

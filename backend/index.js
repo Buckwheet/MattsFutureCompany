@@ -354,6 +354,15 @@ export default {
           return corsResponse({ received: true }, 200, corsHeaders);
         }
 
+        // Initialize the small idempotency table through the Worker's existing D1
+        // binding. This avoids granting the deployment token broad D1 API access.
+        await env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS processed_stripe_events (
+            id TEXT PRIMARY KEY,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `).run();
+
         // Check if event.id has already been processed
         const eventCheck = await env.DB.prepare("SELECT 1 FROM processed_stripe_events WHERE id = ?").bind(event.id).first();
         if (eventCheck) {
