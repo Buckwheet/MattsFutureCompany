@@ -41,6 +41,60 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+// --- Lead input validation (trust boundary: public POST /) ---
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const FIELD_LIMITS = { name: 100, email: 254, phone: 30, equipment: 100, issue: 2000, delivery_address: 500 };
+
+export function validateLeadInput(data) {
+  const { name, email, phone, equipment, issue, delivery_address } = data;
+  if (!name || !email || !phone || !equipment || !issue) {
+    return { ok: false, error: 'All fields are required' };
+  }
+  if (typeof email !== 'string' || email.length > FIELD_LIMITS.email || !EMAIL_RE.test(email)) {
+    return { ok: false, error: 'Invalid email address' };
+  }
+  for (const field of ['name', 'phone', 'equipment', 'issue']) {
+    if (typeof data[field] !== 'string' || data[field].length > FIELD_LIMITS[field]) {
+      return { ok: false, error: `${field} exceeds maximum length` };
+    }
+  }
+  if (delivery_address != null && (typeof delivery_address !== 'string' || delivery_address.length > FIELD_LIMITS.delivery_address)) {
+    return { ok: false, error: 'Invalid delivery address' };
+  }
+  return { ok: true };
+}
+
+// Turnstile bot check. Fails OPEN when the secret is unconfigured (rollout phase) —
+// the moment TURNSTILE_SECRET_KEY is set, every lead must carry a valid token.
+async function verifyTurnstile(env, token, ip) {
+  if (!env.TURNSTILE_SECRET_KEY) {
+    console.warn('TURNSTILE_SECRET_KEY not configured — skipping bot verification');
+    return true;
+  }
+  if (!token) return false;
+  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: env.TURNSTILE_SECRET_KEY, response: token, remoteip: ip })
+  });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.success === true;
+}
+
+// Magic-byte sniffing: trust the file, not the client's Content-Type header.
+// Returns a canonical image MIME type, or null if the bytes match nothing known.
+export function sniffImageType(bytes) {
+  if (bytes.length < 12) return null;
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'image/jpeg';
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'image/png';
+  if (
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+  ) return 'image/webp';
+  return null;
+}
+
 export function buildCustomerDeliveryBlock(pickup_required, delivery_address) {
   if (pickup_required !== 'Yes') return '';
   const addr = (delivery_address || '').trim();
@@ -266,31 +320,35 @@ async function verifyAccessJwt(request, env) {
   }
 }
 
+// Best-effort in-memory rate limiting. NOTE: per-isolate, not global — real
+// protection is a Cloudflare Rate Limiting rule in the dashboard. Key is
+// route-scoped so estimate calls can't starve lead submissions.
+// ponytail: per-isolate map, upgrade to CF Rate Limiting rules if abuse persists
 const rateLimitMap = new Map();
 let lastCleanup = Date.now();
 
-function checkRateLimit(ip, maxRequests = 5, windowMs = 60000) {
+function checkRateLimit(key, maxRequests = 5, windowMs = 60000) {
   const now = Date.now();
   const windowStart = now - windowMs;
 
   // Periodically evict fully expired IP entries (every 10 minutes)
   if (now - lastCleanup > 600000) {
     lastCleanup = now;
-    for (const [key, timestamps] of rateLimitMap.entries()) {
+    for (const [mapKey, timestamps] of rateLimitMap.entries()) {
       const valid = timestamps.filter(t => t > windowStart);
       if (valid.length === 0) {
-        rateLimitMap.delete(key);
+        rateLimitMap.delete(mapKey);
       } else {
-        rateLimitMap.set(key, valid);
+        rateLimitMap.set(mapKey, valid);
       }
     }
   }
 
-  const recent = rateLimitMap.get(ip) || [];
+  const recent = rateLimitMap.get(key) || [];
   const valid = recent.filter(t => t > windowStart);
   if (valid.length >= maxRequests) return false;
   valid.push(now);
-  rateLimitMap.set(ip, valid);
+  rateLimitMap.set(key, valid);
   return true;
 }
 
@@ -363,28 +421,30 @@ export default {
           )
         `).run();
 
-        // Check if event.id has already been processed
-        const eventCheck = await env.DB.prepare("SELECT 1 FROM processed_stripe_events WHERE id = ?").bind(event.id).first();
-        if (eventCheck) {
+        // Idempotency: claim the id BEFORE doing any work. INSERT OR IGNORE is
+        // atomic — a concurrent redelivery of the same event loses the claim
+        // (changes === 0) and is skipped, so the deduct can never run twice.
+        const claim = async (id) => {
+          const res = await env.DB.prepare("INSERT OR IGNORE INTO processed_stripe_events (id) VALUES (?)").bind(id).run();
+          return res.meta?.changes > 0;
+        };
+
+        if (!(await claim(event.id))) {
           console.log(`Event ${event.id} already processed. Skipping.`);
           return corsResponse({ received: true }, 200, corsHeaders);
         }
 
         if (event.type === 'checkout.session.completed') {
           const session = event.data.object;
-          
+
           // If this session created an invoice, we skip it here and let invoice.paid handle it.
           if (session.invoice) {
             console.log(`Checkout session ${session.id} has invoice ${session.invoice}. Skipping to let invoice.paid handle it.`);
-            await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
             return corsResponse({ received: true }, 200, corsHeaders);
           }
 
-          // Check if session.id has already been processed
-          const sessionCheck = await env.DB.prepare("SELECT 1 FROM processed_stripe_events WHERE id = ?").bind(session.id).first();
-          if (sessionCheck) {
+          if (!(await claim(session.id))) {
             console.log(`Checkout session ${session.id} already processed. Skipping.`);
-            await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
             return corsResponse({ received: true }, 200, corsHeaders);
           }
 
@@ -398,42 +458,32 @@ export default {
               `).bind(item.quantity, item.price.product).run();
             }
           }
-
-          // Record session.id and event.id as processed
-          await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(session.id).run();
-          await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
         }
 
         if (event.type === 'invoice.paid') {
           const invoice = event.data.object;
 
-          // Check if invoice.id has already been processed
-          const invoiceCheck = await env.DB.prepare("SELECT 1 FROM processed_stripe_events WHERE id = ?").bind(invoice.id).first();
-          if (invoiceCheck) {
-            console.log(`Invoice ${invoice.id} already processed. Skipping.`);
-            await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
+          if (!invoice.lines || !invoice.lines.data) {
+            console.log('invoice.paid: no line items, skipping inventory deduction');
             return corsResponse({ received: true }, 200, corsHeaders);
           }
 
-          if (!invoice.lines || !invoice.lines.data) {
-            console.log('invoice.paid: no line items, skipping inventory deduction');
-          } else {
-            for (const item of invoice.lines.data) {
-              if (item.price && item.price.product) {
-                await env.DB.prepare(`
-                  UPDATE parts
-                  SET quantity = MAX(0, quantity - ?)
-                  WHERE stripe_product_id = ?
-                `).bind(item.quantity, item.price.product).run();
-              }
-            }
+          if (!(await claim(invoice.id))) {
+            console.log(`Invoice ${invoice.id} already processed. Skipping.`);
+            return corsResponse({ received: true }, 200, corsHeaders);
           }
 
-          // Record invoice.id and event.id as processed
-          await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(invoice.id).run();
-          await env.DB.prepare("INSERT INTO processed_stripe_events (id) VALUES (?)").bind(event.id).run();
+          for (const item of invoice.lines.data) {
+            if (item.price && item.price.product) {
+              await env.DB.prepare(`
+                UPDATE parts
+                SET quantity = MAX(0, quantity - ?)
+                WHERE stripe_product_id = ?
+              `).bind(item.quantity, item.price.product).run();
+            }
+          }
         }
-        
+
         return corsResponse({ received: true }, 200, corsHeaders);
       } catch (e) {
         console.error('Webhook processing error:', e.message);
@@ -516,6 +566,7 @@ export default {
       object.writeHttpMetadata(headers);
       headers.set('Access-Control-Allow-Origin', corsHeaders['Access-Control-Allow-Origin']);
       headers.set('etag', object.httpEtag);
+      headers.set('X-Content-Type-Options', 'nosniff');
       
       return new Response(object.body, { headers });
     }
@@ -524,24 +575,22 @@ export default {
     if (url.pathname === '/api/upload' && request.method === 'POST') {
       try {
         await requireAuth();
-        const contentType = request.headers.get('Content-Type') || '';
-        if (!contentType.startsWith('image/')) {
-          return corsResponse({ error: 'Only image uploads are allowed' }, 400, corsHeaders);
-        }
-        const contentLength = parseInt(request.headers.get('Content-Length') || '0');
-        if (contentLength > 10 * 1024 * 1024) { // 10MB limit
+
+        // Buffer and inspect the real bytes — never trust the client's
+        // Content-Type or Content-Length (both are trivially spoofed).
+        const buf = await request.arrayBuffer();
+        if (buf.byteLength > 10 * 1024 * 1024) { // 10MB limit, enforced on the body itself
           return corsResponse({ error: 'Image size cannot exceed 10MB' }, 400, corsHeaders);
         }
+        const detected = sniffImageType(new Uint8Array(buf));
+        if (!detected) {
+          return corsResponse({ error: 'Only JPEG, PNG, or WebP images are allowed' }, 400, corsHeaders);
+        }
 
-        let ext = '.jpg';
-        if (contentType === 'image/png') ext = '.png';
-        else if (contentType === 'image/gif') ext = '.gif';
-        else if (contentType === 'image/webp') ext = '.webp';
-        else if (contentType === 'image/heic') ext = '.heic';
-
+        const ext = detected === 'image/jpeg' ? '.jpg' : detected === 'image/png' ? '.png' : '.webp';
         const key = `part_${Date.now()}${ext}`;
-        await env.PHOTOS.put(key, request.body, {
-          httpMetadata: { contentType }
+        await env.PHOTOS.put(key, buf, {
+          httpMetadata: { contentType: detected }
         });
         return corsResponse({ success: true, url: `${url.origin}/api/photos/${key}` }, 200, corsHeaders);
       } catch (e) {
@@ -691,7 +740,7 @@ export default {
     if (url.pathname === '/api/estimate' && request.method === 'POST') {
       try {
         const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-        if (!checkRateLimit(clientIp)) {
+        if (!checkRateLimit(`estimate:${clientIp}`)) {
           return corsResponse({ error: 'Too many requests. Please try again later.' }, 429, corsHeaders);
         }
         if (!env.ORS_API_KEY) {
@@ -711,20 +760,27 @@ export default {
     if (url.pathname === '/' && request.method === 'POST') {
       try {
         const data = await request.json();
+
+        // Trust-boundary validation: presence, email format, length caps.
+        const check = validateLeadInput(data);
+        if (!check.ok) {
+          return corsResponse({ error: check.error }, 400, corsHeaders);
+        }
+
+        const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+        if (!checkRateLimit(`lead:${clientIp}`)) {
+          return corsResponse({ error: 'Too many requests. Please try again later.' }, 429, corsHeaders);
+        }
+
+        // Bot gate: Cloudflare Turnstile. Enforced whenever the secret is set.
+        if (!(await verifyTurnstile(env, data.cf_token, clientIp))) {
+          return corsResponse({ error: 'Bot verification failed. Please try again.' }, 400, corsHeaders);
+        }
+
         const {
           name, email, phone, equipment, issue, pickup_required,
           delivery_address, delivery_lat, delivery_lng, estimate, distance_miles
         } = data;
-
-        // Basic input validations
-        if (!name || !email || !phone || !equipment || !issue) {
-          return corsResponse({ error: 'All fields are required' }, 400, corsHeaders);
-        }
-
-        const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
-        if (!checkRateLimit(clientIp)) {
-          return corsResponse({ error: 'Too many requests. Please try again later.' }, 429, corsHeaders);
-        }
 
         // 1. STRIPE CUSTOMER LOGIC
         const stripeCustomers = await stripe.customers.list({ email: email, limit: 1 });
@@ -888,7 +944,7 @@ export default {
 
         return corsResponse({ success: true, message: 'Request received!' }, 200, corsHeaders);
 
-      } catch (err) {
+      } catch {
         return corsResponse({ error: 'Failed to process lead request' }, 500, corsHeaders);
       }
     }
