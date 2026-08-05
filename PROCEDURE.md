@@ -77,13 +77,16 @@ Rule: a commit that adds a security fix without a test, or a test that fails, is
 | 6 | JWT: no nbf, hardcoded email | DEFERRED (works; brittle only if Matt's email changes) |
 | 7-13 | CORS fallback, dead secrets, tel: masking, headers/CSP, action pinning, photo keys | DEFERRED/ops |
 
-## 6. Turnstile rollout (remaining ops step)
+## 6. Turnstile rollout — DONE (2026-08-05, via Cloudflare API)
 
-1. Cloudflare dashboard → Turnstile → Add widget → get **Site Key** + **Secret Key**.
-2. Replace the test sitekey `1x00000000000000000000AA` in `site/index.html` (the widget div).
-3. Set the secret: `npx wrangler secret put TURNSTILE_SECRET_KEY` (backend dir).
-4. Add `TURNSTILE_SECRET_KEY` to GitHub repo secrets + `deploy.yml` secret-put step (mirrors ORS_API_KEY block).
-5. Deploy, then verify: scripted POST to `/` without a token → 400 "Bot verification failed".
+- Widget "Peterson Lead Form" created via `POST /accounts/{id}/challenges/widgets`
+  (managed mode; domains: petersonsmallenginerepair.com, localhost).
+- Site key `0x4AAAAAAEHcuMoVkCVFG3hr` is in `site/index.html` (public — safe in repo).
+- Secret `TURNSTILE_SECRET_KEY` set as a GitHub repo secret (deploy.yml pushes it to the
+  Worker on every deploy).
+- Remaining: merge/push the branch → deploy.yml sets the worker secret → verify:
+  scripted POST to `/` without a token returns 400 "Bot verification failed".
+- To re-create/rotate: `GET|DELETE /accounts/{id}/challenges/widgets/{id}`.
 
 ## 7. Ops notes
 
