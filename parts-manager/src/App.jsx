@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { Package, Scan, Plus, Search, AlertTriangle, ArrowLeft, Save } from 'lucide-react';
+import { Package, Scan, Plus, ArrowLeft, Save } from 'lucide-react';
 import './App.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'https://peterson-backend.mattssmallenginerep.workers.dev';
@@ -27,26 +27,6 @@ function App() {
     name: '', sku: '', upc: '', price: '', quantity: 1, reorder_point: 2, description: '', image_url: ''
   });
 
-  useEffect(() => {
-    const loadJwt = async () => {
-      try {
-        // Retrieve JWT assertion token from Cloudflare Zero Trust session
-        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-          const res = await axios.get('/cdn-cgi/access/jwt');
-          if (res.data && typeof res.data === 'string') {
-            sessionStorage.setItem('cf_access_jwt', res.data);
-          }
-        }
-      } catch (e) {
-        console.warn('Could not fetch Zero Trust JWT assertion. Bypassing (running in dev mode).');
-      }
-    };
-
-    loadJwt().then(() => {
-      fetchParts();
-    });
-  }, []);
-
   const fetchParts = async () => {
     try {
       const res = await axios.get(`${API_BASE}/api/parts`);
@@ -57,6 +37,26 @@ function App() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadJwt = async () => {
+      try {
+        // Retrieve JWT assertion token from Cloudflare Zero Trust session
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          const res = await axios.get('/cdn-cgi/access/jwt');
+          if (res.data && typeof res.data === 'string') {
+            sessionStorage.setItem('cf_access_jwt', res.data);
+          }
+        }
+      } catch {
+        console.warn('Could not fetch Zero Trust JWT assertion. Bypassing (running in dev mode).');
+      }
+    };
+
+    loadJwt().then(() => {
+      fetchParts();
+    });
+  }, []);
 
   const startScanner = () => {
     setShowScanner(true);
@@ -81,8 +81,8 @@ function App() {
         } catch (e) {
           console.error('Lookup failed:', e);
         }
-      }, (error) => {
-        // console.warn(error);
+      }, () => {
+        // QR decode error callback (no-op — scanner keeps running)
       });
     }, 100);
   };
@@ -146,7 +146,7 @@ function App() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`${API_BASE}/api/parts`, {
+      await axios.post(`${API_BASE}/api/parts`, {
         ...formData,
         price: parseFloat(formData.price),
         quantity: parseInt(formData.quantity),
