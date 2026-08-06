@@ -8,16 +8,20 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8788'
 ];
 
-// Helper to get CORS headers dynamically based on the Origin header
+// Helper to get CORS headers dynamically based on the Origin header.
+// ACAO is echoed ONLY for allowed origins — never emit a fallback origin,
+// or a mismatched-origin response becomes CORS-visible the day cookies are added.
 function getCorsHeaders(request) {
   const origin = request.headers.get('Origin');
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : 'https://inventory.petersonsmallenginerepair.com';
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
+  const headers = {
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cf-Access-Jwt-Assertion',
     'Access-Control-Max-Age': '86400',
   };
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin;
+  }
+  return headers;
 }
 
 // JSON CORS response helper
@@ -283,6 +287,8 @@ async function verifyAccessJwt(request, env) {
     if (payload.aud !== env.CLOUDFLARE_ACCESS_AUD) return false;
     if (payload.email !== "mattssmallenginerep@gmail.com") return false;
     if (payload.exp < Date.now() / 1000) return false;
+    // Reject tokens whose not-before time is in the future (clock-skew guard)
+    if (payload.nbf && payload.nbf > Date.now() / 1000) return false;
 
     // Fetch and cache certificates
     const jwks = await getJwks(authDomain);
@@ -564,7 +570,9 @@ export default {
       
       const headers = new Headers();
       object.writeHttpMetadata(headers);
-      headers.set('Access-Control-Allow-Origin', corsHeaders['Access-Control-Allow-Origin']);
+      if (corsHeaders['Access-Control-Allow-Origin']) {
+        headers.set('Access-Control-Allow-Origin', corsHeaders['Access-Control-Allow-Origin']);
+      }
       headers.set('etag', object.httpEtag);
       headers.set('X-Content-Type-Options', 'nosniff');
       
