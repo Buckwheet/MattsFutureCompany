@@ -74,8 +74,8 @@ Rule: a commit that adds a security fix without a test, or a test that fails, is
 | 3 | Upload: client content-type, no magic bytes, size cap bypass, no nosniff | FIXED |
 | 4 | Webhook idempotency race (SELECT→act→INSERT) | FIXED: INSERT OR IGNORE claims |
 | 5 | `ENVIRONMENT=dev` auth fail-open switch | DEFERRED (dev workflow; documented, never set in prod) |
-| 6 | JWT: no nbf, hardcoded email | DEFERRED (works; brittle only if Matt's email changes) |
-| 7-13 | CORS fallback, dead secrets, tel: masking, headers/CSP, action pinning, photo keys | DEFERRED/ops |
+| 6 | JWT: no nbf, hardcoded email | PARTIAL: nbf check + real RS256 auth tests added; email stays hardcoded (needs a new secret to move — ops) |
+| 7-13 | CORS fallback, dead secrets, tel: masking, headers/CSP, action pinning, photo keys | PARTIAL: CORS fallback FIXED; tel: masking was a FALSE POSITIVE (tool output redaction — verified live click-to-call is fine); rest deferred/ops |
 
 ## 6. Turnstile rollout — DONE (2026-08-05, via Cloudflare API)
 
@@ -93,6 +93,6 @@ Rule: a commit that adds a security fix without a test, or a test that fails, is
 - Health check cron: daily 08:00 UTC (`backend/wrangler.toml` triggers) → emails Matt.
 - Dead secrets found in `.env` (CLOUDFLARE_API_KEY, ZONE_ID, PAGES_PROJECT, SQUARE_APP_ID,
   SQUARE_LOCATION_ID, STRIPE_BACKUP_CODE): rotate or delete — housekeeping.
-- `site/index.html` tel: links are masked (`+176****9259`) — verify live click-to-call works;
-  if the deployed file is identical, dialing is broken (masking is likely repo-redaction).
+- `site/index.html` tel: links — verified WORKING in production; the earlier "masked href"
+  finding was a false positive from tool output redaction (real digits are in the file).
 - Inventory app (`parts-manager/`) is NOT deployed by CI — deploy manually or add a workflow.
