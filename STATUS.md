@@ -200,10 +200,13 @@ inventory against sales periodically; the deduction path is the one to suspect i
 
 ## 6. Parked
 
-- **`PROJECT_STATE.md` is stale.** It documents the mobile hero work, but still lists
-  `.carousel-dots: bottom: 52px` and the old `#hero` height as deliverables — both reverted in
-  `98b0e8d`. It was left untouched because the parallel session had it open. Reconcile or retire it
-  in favour of this file.
+- **`PROJECT_STATE.md` is accurate for the mobile work — retire or fold it in.** Every mobile claim
+  in it still holds: grid stacking, auto height on mobile, `.carousel-dots` at `bottom: 52px` (via
+  the `@media` query, line 536), mobile padding/typography, and `style.css?v=1.0.10`. What it does
+  not record is review fix `98b0e8d`, which restored the **desktop-scoped base rules** that work had
+  also changed (`#hero` height, base `.carousel-dots` 52px → 16px, `.slide-content` base padding).
+  Mobile was never affected by that revert. Its last checklist item (device verification) is now
+  done. Consider retiring it in favour of this file.
 - **Merge PR #18** (`tool/ui-verification`) — the only item currently waiting on a human. Nothing
   else is pending on `main`.
 - Decide whether to publish a real street address (would enable stronger local-pack signals).
