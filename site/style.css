@@ -120,22 +120,42 @@ nav {
   background: var(--bg-color);
   overflow: hidden;
   margin-top: 72px; /* Offset for fixed nav */
+  display: grid;
+  grid-template-areas: "hero-slide";
+  align-items: stretch;
 }
 
 .slide {
-  position: absolute;
-  inset: 0;
+  grid-area: hero-slide;
+  position: relative;
+  width: 100%;
+  min-height: 100%;
   opacity: 0;
-  transition: opacity 0.8s ease-in-out;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.8s ease-in-out, visibility 0.8s ease-in-out;
   display: flex;
   align-items: center;
-  background-size: cover;
-  background-position: center;
 }
 
 .slide.active {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
   z-index: 2;
+}
+
+/* Hero photo as a real <img> rather than a CSS background, so it can be
+   lazy-loaded (and given fetchpriority=high on the LCP slide) instead of
+   every slide downloading eagerly. */
+.slide-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+  z-index: 0;
 }
 
 .slide-overlay {
@@ -149,11 +169,16 @@ nav {
   position: relative;
   z-index: 2;
   color: #fff;
+  width: 100%;
   max-width: 600px;
   padding: 0 5%;
 }
 
-.slide-content h1 {
+/* Exactly one <h1> per page (the main hero). Every other slide title is an
+   <h2> that must look identical to it. */
+.slide-content h1,
+.slide-content .slide-title {
+  font-size: clamp(2rem, 4vw, 3rem);
   color: #fff;
   margin-bottom: 24px;
   text-shadow: 0 2px 10px rgba(0,0,0,0.3);
@@ -473,21 +498,42 @@ footer p { font-size: 0.9rem; color: rgba(255,255,255,0.5); margin: 0; }
   }
   .nav-links.open { display: flex; }
   
-  #hero { height: auto; min-height: 500px; padding: 60px 0 80px 0; }
-  .slide-content { text-align: center; padding: 40px 20px; }
+  #hero { height: auto; min-height: auto; padding: 0; }
+  .slide { justify-content: center; }
+  .slide-overlay { background: linear-gradient(to bottom, rgba(11, 26, 20, 0.88) 0%, rgba(11, 26, 20, 0.72) 100%); }
+  .slide-content {
+    text-align: center;
+    padding: 36px 20px 92px;
+    max-width: 100%;
+  }
+  .slide-content h1,
+  .slide-content .slide-title {
+    font-size: 1.85rem;
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+  .slide-content p {
+    font-size: 1rem;
+    line-height: 1.55;
+    margin-bottom: 24px;
+  }
   .carousel-btn { display: none; } /* Hide arrows on mobile for better touch experience */
   
   .hero-actions {
+    margin-top: 20px;
     justify-content: center;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
+  }
+  .hero-actions .btn {
+    width: 100%;
+    max-width: 290px;
   }
   
   .trust-inner { flex-direction: column; align-items: center; gap: 16px; }
   
   .carousel-dots { bottom: 52px; }
-  .slide-content { padding-bottom: 80px; }
   
   .service-row, .service-row.reverse { grid-template-columns: 1fr; direction: ltr; text-align: center; margin-bottom: 0; }
   .service-text { margin: 0 auto; }

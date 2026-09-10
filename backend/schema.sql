@@ -26,3 +26,11 @@ CREATE TABLE IF NOT EXISTS processed_stripe_events (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Customer auto-response cap: at most one auto-reply per recipient per UTC day,
+-- so a lead-form spam run cannot turn our domain into a backscatter source.
+CREATE TABLE IF NOT EXISTS lead_autorespond (
+    email TEXT NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (email, day)
+);
+
