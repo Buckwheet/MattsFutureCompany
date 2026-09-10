@@ -114,8 +114,8 @@ nav {
 #hero { 
   position: relative;
   width: 100%;
-  min-height: 85vh;
-  min-height: 85dvh;
+  height: 85vh;
+  height: 85dvh;
   min-height: 600px;
   background: var(--bg-color);
   overflow: hidden;
@@ -171,7 +171,7 @@ nav {
   color: #fff;
   width: 100%;
   max-width: 600px;
-  padding: 40px 5% 60px;
+  padding: 0 5%;
 }
 
 /* Exactly one <h1> per page (the main hero). Every other slide title is an
@@ -221,7 +221,7 @@ nav {
 
 .carousel-dots {
   position: absolute;
-  bottom: 52px;
+  bottom: 16px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
@@ -498,7 +498,7 @@ footer p { font-size: 0.9rem; color: rgba(255,255,255,0.5); margin: 0; }
   }
   .nav-links.open { display: flex; }
   
-  #hero { min-height: auto; padding: 0; }
+  #hero { height: auto; min-height: auto; padding: 0; }
   .slide { justify-content: center; }
   .slide-overlay { background: linear-gradient(to bottom, rgba(11, 26, 20, 0.88) 0%, rgba(11, 26, 20, 0.72) 100%); }
   .slide-content {
