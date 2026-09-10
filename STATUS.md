@@ -100,6 +100,30 @@ Bonus find: every `site/images/*.png` was actually **JPEG data** served as `imag
 - Preserved real content that was loose in the root: `MATTS_OPS_MANUAL.md` (root) and
   `playbook.html` + `scratch/transport_sim.py` (→ `docs/`).
 
+### Round 3.1 — UI verification harness (**PR #18 — open, merge to land**)
+
+Added because the mobile hero bug above reached production and **no lint, unit test, or curl check
+can see layout**. Also because the agent cannot interpret images in this environment (`view_image`
+returns "no image understanding model is configured"), so a screenshot-only harness would prove
+nothing to it — this measures the **DOM** instead.
+
+- `tools/verify-ui.mjs` + `tools/page-measure.mjs`; entry point `npm run verify:ui`.
+- Drives the **installed Chrome via a Playwright channel** — `playwright-core` only, no browser
+  binaries downloaded.
+- Four viewports (iPhone 13 390px, iPhone SE 375px, small Android 360px, desktop 1440px), 32 checks:
+  eyebrow vs the fixed nav, Call button and dots vs `#trust`, `#hero` clipping
+  (`scrollHeight - clientHeight` on an `overflow:hidden` box), horizontal overflow, grid carousel,
+  `img.slide-bg` present, exactly one `<h1>`, exactly one active slide.
+- **Proven to bite:** forcing the old fixed-height mobile hero on a throwaway copy of `site/`
+  produced 3 FAILs (`hero scrollHeight exceeds clientHeight by 23px`). Neither the repo nor
+  production was mutated to test it.
+- **Kept out of `npm run check`** — it needs a browser and network, and the offline pre-commit gate
+  must keep passing.
+- `tools/` is now under the single ESLint config, with a browser-globals block for
+  `page-measure.mjs` because that module is serialised by Playwright and runs *inside the page*.
+- **Emulation is a floor, not a ceiling.** It is faithful for layout bugs but *not* Safari-specific
+  behaviour, and the hero uses `dvh`. It narrows the gap; it does not close it.
+
 ---
 
 ## 4. Verification — done, and what is still open
@@ -180,9 +204,8 @@ inventory against sales periodically; the deduction path is the one to suspect i
   `.carousel-dots: bottom: 52px` and the old `#hero` height as deliverables — both reverted in
   `98b0e8d`. It was left untouched because the parallel session had it open. Reconcile or retire it
   in favour of this file.
-- **Untracked `1000007116.jpg` in the repo root** — a 1080×2340 Android screenshot (the mobile bug
-  capture), deliberately not committed. Delete or gitignore it.
-- Stale-character cleanup (needs a user TOTP click).
+- **Merge PR #18** (`tool/ui-verification`) — the only item currently waiting on a human. Nothing
+  else is pending on `main`.
 - Decide whether to publish a real street address (would enable stronger local-pack signals).
 - Pin `cloudflare/wrangler-action` and `actions/checkout` to commit SHAs.
 - Per-city landing pages if local query volume justifies it.
@@ -203,14 +226,24 @@ inventory against sales periodically; the deduction path is the one to suspect i
 > needs a regression test in the same change — and disable the fix once to prove the test actually
 > fails without it.
 >
-> Round 3 is merged to `main` (PR #17, `d6d0af1`) and verified live; there is no pending work in the
-> tree apart from the untracked screenshot noted in §6. Pick up the open items in §4 — the Stripe
-> webhook end-to-end test is the most valuable one.
+> Round 3 (backend security + site SEO/perf) is **merged to `main` and verified live** — PR #17,
+> merge `d6d0af1`, plus a docs commit `e9c47e4`. **PR #18 is open and awaiting your merge**: it adds
+> the UI verification harness (`npm run verify:ui`, `tools/`). Merge that first — it is the only
+> thing pending.
 >
-> Hero/carousel CSS is the sharpest edge in this repo: base rules and the mobile `@media` overrides
-> must be changed together, and `style.css?v=` must be bumped (Pages serves CSS with
-> `max-age=14400`, so a stale URL pairs new markup with old CSS). See §3 for the regression that
-> caused last time.
+> Then pick up the open items in §4; the Stripe webhook end-to-end test is the most valuable.
+>
+> Two hard-won rules from this round:
+>
+> 1. **Layout bugs are this repo's blind spot.** They are invisible to lint, unit tests and curl, and
+>    the agent cannot see images (`view_image` has no model configured). So after ANY change to
+>    `site/`, run `npm run verify:ui` (`PROCEDURE.md` §1a). Hero base rules and the mobile `@media`
+>    overrides must be changed together, and `style.css?v=` must be bumped — Pages serves CSS with
+>    `max-age=14400`, so a stale URL pairs new markup with old CSS. See §3 for the regression that
+>    caused last time.
+> 2. **Prove a check bites.** Disable the fix and watch the test fail before believing it. Two
+>    "green" checks this round were decoration: a flaky auth test flipping an ignored base64 bit, and
+>    a harness count I had hand-counted wrong (33 vs the real 32).
 >
 > Do not commit directly to `main`; branch, open a PR, and let CI deploy on merge. `parts-manager/`
 > deploys manually.
