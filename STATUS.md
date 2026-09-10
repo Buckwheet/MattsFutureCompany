@@ -100,7 +100,7 @@ Bonus find: every `site/images/*.png` was actually **JPEG data** served as `imag
 - Preserved real content that was loose in the root: `MATTS_OPS_MANUAL.md` (root) and
   `playbook.html` + `scratch/transport_sim.py` (→ `docs/`).
 
-### Round 3.1 — UI verification harness (**PR #18 — open, merge to land**)
+### Round 3.1 — UI verification harness (shipped, PR #18)
 
 Added because the mobile hero bug above reached production and **no lint, unit test, or curl check
 can see layout**. Also because the agent cannot interpret images in this environment (`view_image`
@@ -207,8 +207,6 @@ inventory against sales periodically; the deduction path is the one to suspect i
   also changed (`#hero` height, base `.carousel-dots` 52px → 16px, `.slide-content` base padding).
   Mobile was never affected by that revert. Its last checklist item (device verification) is now
   done. Consider retiring it in favour of this file.
-- **Merge PR #18** (`tool/ui-verification`) — the only item currently waiting on a human. Nothing
-  else is pending on `main`.
 - Decide whether to publish a real street address (would enable stronger local-pack signals).
 - Pin `cloudflare/wrangler-action` and `actions/checkout` to commit SHAs.
 - Per-city landing pages if local query volume justifies it.
@@ -230,11 +228,10 @@ inventory against sales periodically; the deduction path is the one to suspect i
 > fails without it.
 >
 > Round 3 (backend security + site SEO/perf) is **merged to `main` and verified live** — PR #17,
-> merge `d6d0af1`, plus a docs commit `e9c47e4`. **PR #18 is open and awaiting your merge**: it adds
-> the UI verification harness (`npm run verify:ui`, `tools/`). Merge that first — it is the only
-> thing pending.
+> merge `d6d0af1`, plus a docs commit `e9c47e4`. Round 3.1 (the UI verification harness,
+> `npm run verify:ui` + `tools/`) is merged too, via PR #18. **Nothing is pending in the tree.**
 >
-> Then pick up the open items in §4; the Stripe webhook end-to-end test is the most valuable.
+> Pick up the open items in §4; the Stripe webhook end-to-end test is the most valuable.
 >
 > Two hard-won rules from this round:
 >
