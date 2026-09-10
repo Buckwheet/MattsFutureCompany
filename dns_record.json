@@ -1,7 +1,0 @@
-{
-  "type": "CNAME",
-  "name": "@",
-  "content": "petersons-small-engine-repair.pages.dev",
-  "ttl": 1,
-  "proxied": true
-}
