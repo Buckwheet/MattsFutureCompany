@@ -19,13 +19,20 @@ function makeToken({
   nbf = Math.floor(Date.now() / 1000) - 60,
   kid = 'test-kid',
   tampered = false,
+  // Declared in the header only — the signature is always a real RS256 sig, so
+  // this models a token that lies about its algorithm.
+  alg = 'RS256',
 } = {}) {
-  const header = { alg: 'RS256', typ: 'JWT', kid };
+  const header = { alg, typ: 'JWT', kid };
   const payload = { iss: `https://${AUTH_DOMAIN}`, aud, email, exp, nbf, iat: Math.floor(Date.now() / 1000) - 120 };
   const h = b64url(header);
   const p = b64url(payload);
   const sig = rsaSign('RSA-SHA256', Buffer.from(`${h}.${p}`), privateKey).toString('base64url');
-  const finalSig = tampered ? (sig.slice(0, -1) + (sig.endsWith('A') ? 'B' : 'A')) : sig;
+  // Flip the FIRST signature char, never the last. A 2048-bit RSA signature is
+  // 342 base64url chars, so the trailing char's low bits are discarded when
+  // atob() decodes it — tampering there is a no-op ~1/64 of the time.
+  const tamperedSig = (sig[0] === 'A' ? 'B' : 'A') + sig.slice(1);
+  const finalSig = tampered ? tamperedSig : sig;
   return `${h}.${p}.${finalSig}`;
 }
 
@@ -93,6 +100,23 @@ describe('Cloudflare Access JWT verification (GET /api/parts)', () => {
     const res = await worker.fetch(partsRequest(makeToken({ email: 'attacker@example.com' })), authEnv());
     expect(res.status).toBe(401);
   });
+
+  // Regression: without an explicit alg pin, a token declaring HS256 (but
+  // signed with a valid RS256 key) still verified against the issuer's JWKS.
+  it('rejects a token whose header alg is not RS256', async () => {
+    const res = await worker.fetch(partsRequest(makeToken({ alg: 'HS256' })), authEnv());
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects an unsigned alg:none token', async () => {
+    const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT', kid: 'test-kid' })).toString('base64url');
+    const payload = Buffer.from(JSON.stringify({
+      iss: `https://${AUTH_DOMAIN}`, aud: AUD, email: OWNER_EMAIL,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    })).toString('base64url');
+    const res = await worker.fetch(partsRequest(`${header}.${payload}.`), authEnv());
+    expect(res.status).toBe(401);
+  });
 });
 
 describe('CORS: Access-Control-Allow-Origin echoes only allowed origins', () => {
@@ -111,5 +135,14 @@ describe('CORS: Access-Control-Allow-Origin echoes only allowed origins', () => 
 
     const noOrigin = await worker.fetch(new Request('https://example.com/nope'), authEnv());
     expect(noOrigin.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+
+  // Regression: ACAO is request-derived, so responses must be cache-keyed on
+  // Origin or a shared cache can hand one origin's ACAO to another.
+  it('sends Vary: Origin on every response', async () => {
+    for (const headers of [{ origin: 'https://petersonsmallenginerepair.com' }, { origin: 'https://evil.com' }, {}]) {
+      const res = await worker.fetch(new Request('https://example.com/nope', { headers }), authEnv());
+      expect(res.headers.get('Vary')).toBe('Origin');
+    }
   });
 });

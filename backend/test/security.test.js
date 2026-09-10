@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { validateLeadInput, sniffImageType } from '../index.js';
+import { validateLeadInput, sniffImageType, sanitizeHeader } from '../index.js';
 
 // Shared mutable event/line-item state for the mocked Stripe module.
 const { mockEvent, mockLineItems } = vi.hoisted(() => ({
@@ -54,27 +54,50 @@ function validLead() {
   };
 }
 
-// Fake D1 that implements INSERT OR IGNORE claim semantics.
+// Fake D1 with real INSERT OR IGNORE claim semantics, claim release, and batch
+// (implicit-transaction) execution — a fresh statement object per prepare() so
+// concurrent-looking calls don't clobber each other's SQL or bindings.
 function claimDb() {
-  const calls = { claims: new Set(), updates: 0 };
-  const statement = {
-    _sql: '',
-    bind: function (id) { this._id = id; return this; },
-    run: async function () {
-      if (this._sql.includes('INSERT OR IGNORE')) {
-        if (calls.claims.has(this._id)) return { meta: { changes: 0 } };
-        calls.claims.add(this._id);
-        return { meta: { changes: 1 } };
-      }
-      if (this._sql.includes('UPDATE parts')) { calls.updates += 1; return { meta: { changes: 1 } }; }
-      return { meta: { changes: 1 } }; // CREATE TABLE and friends
+  const calls = { claims: new Set(), updates: 0, releases: 0, batches: 0 };
+
+  const makeStatement = (sql) => {
+    const stmt = {
+      _sql: sql,
+      _args: [],
+      bind(...args) { stmt._args = args; return stmt; },
+      async run() {
+        if (sql.includes('INSERT OR IGNORE')) {
+          const key = stmt._args[0];
+          if (calls.claims.has(key)) return { meta: { changes: 0 } };
+          calls.claims.add(key);
+          return { meta: { changes: 1 } };
+        }
+        if (sql.includes('DELETE FROM processed_stripe_events')) {
+          calls.releases += 1;
+          calls.claims.delete(stmt._args[0]);
+          return { meta: { changes: 1 } };
+        }
+        if (sql.includes('UPDATE parts')) { calls.updates += 1; return { meta: { changes: 1 } }; }
+        return { meta: { changes: 1 } }; // CREATE TABLE and friends
+      },
+      async first() { return null; },
+    };
+    return stmt;
+  };
+
+  const db = {
+    prepare: (sql) => makeStatement(sql),
+    // D1 runs a batch inside one implicit transaction: all statements land or
+    // none do. Mirror that here.
+    batch: async (statements) => {
+      calls.batches += 1;
+      const results = [];
+      for (const s of statements) results.push(await s.run());
+      return results;
     },
-    first: async () => null,
   };
-  return {
-    db: { prepare: (sql) => { statement._sql = sql; return statement; } },
-    calls,
-  };
+
+  return { db, calls };
 }
 
 describe('validateLeadInput', () => {
@@ -98,6 +121,21 @@ describe('validateLeadInput', () => {
     expect(validateLeadInput({ ...validLead(), issue: 'x'.repeat(2001) }).ok).toBe(false);
     expect(validateLeadInput({ ...validLead(), name: 'x'.repeat(101) }).ok).toBe(false);
     expect(validateLeadInput({ ...validLead(), delivery_address: 'x'.repeat(501) }).ok).toBe(false);
+  });
+});
+
+describe('sanitizeHeader', () => {
+  it('collapses CR/LF so a subject cannot smuggle extra headers', () => {
+    const cleaned = sanitizeHeader('Test User\r\nBcc: evil@example.com');
+    expect(cleaned).not.toMatch(/[\r\n]/);
+    expect(cleaned).toContain('Bcc: evil@example.com');
+    expect(sanitizeHeader('  \r\n hi \n ')).toBe('hi');
+  });
+
+  it('caps length and coerces non-strings', () => {
+    expect(sanitizeHeader('x'.repeat(200)).length).toBe(100);
+    expect(sanitizeHeader(undefined)).toBe('');
+    expect(sanitizeHeader(42)).toBe('42');
   });
 });
 
@@ -157,6 +195,48 @@ describe('POST / (lead capture)', () => {
   it('fails open without TURNSTILE_SECRET_KEY (documented rollout behavior)', async () => {
     const res = await worker.fetch(leadRequest(validLead()), baseEnv);
     expect(res.status).toBe(200);
+  });
+
+  // Capture every Resend payload while letting Turnstile pass.
+  function captureEmails() {
+    const sent = [];
+    global.fetch.mockImplementation(async (url, opts) => {
+      if (String(url).includes('api.resend.com')) {
+        sent.push(JSON.parse(opts.body));
+        return { ok: true, json: async () => ({}) };
+      }
+      return { ok: true, json: async () => ({ success: true }) };
+    });
+    return sent;
+  }
+
+  it('sanitises CRLF out of every outgoing subject', async () => {
+    const sent = captureEmails();
+    const env = { ...baseEnv, RESEND_API_KEY: 're_test', TURNSTILE_SECRET_KEY: '1x', DB: claimDb().db };
+
+    const res = await worker.fetch(
+      leadRequest({ ...validLead(), name: 'Test User\r\nBcc: evil@example.com' }, '8.8.8.1'),
+      env
+    );
+
+    expect(res.status).toBe(200);
+    expect(sent.length).toBeGreaterThan(0);
+    for (const mail of sent) expect(mail.subject).not.toMatch(/[\r\n]/);
+  });
+
+  it('sends the customer auto-response at most once per recipient per day', async () => {
+    const sent = captureEmails();
+    const env = { ...baseEnv, RESEND_API_KEY: 're_test', TURNSTILE_SECRET_KEY: '1x', DB: claimDb().db };
+
+    for (let i = 0; i < 2; i++) {
+      const res = await worker.fetch(leadRequest(validLead(), `8.8.9.${i}`), env);
+      expect(res.status).toBe(200);
+    }
+
+    const toMatt = sent.filter(m => m.to === 'matt@petersonsmallenginerepair.com');
+    const toCustomer = sent.filter(m => m.to === 'test@example.com');
+    expect(toMatt.length).toBe(2);      // every lead still reaches Matt
+    expect(toCustomer.length).toBe(1);  // backscatter vector is capped
   });
 });
 
@@ -229,6 +309,43 @@ describe('Stripe webhook idempotency (INSERT OR IGNORE claims)', () => {
     expect(res.status).toBe(200);
     expect(calls.updates).toBe(0); // invoice.paid will handle the deduction
   });
+
+  // Regression: a claim taken before the work used to survive a failure, so
+  // Stripe's redelivery saw "already processed" and the deduction was lost.
+  it('releases the claim when the deduction fails so the retry can deduct', async () => {
+    const { db, calls } = claimDb();
+    const realBatch = db.batch;
+    let failNextBatch = true;
+    db.batch = async (statements) => {
+      if (failNextBatch) { failNextBatch = false; throw new Error('D1 write failed'); }
+      return realBatch(statements);
+    };
+    const env = { STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', DB: db };
+
+    const first = await worker.fetch(webhookRequest({ id: mockEvent.id }), env);
+    expect(first.status).toBe(500);
+    expect(calls.updates).toBe(0);
+    expect(calls.releases).toBeGreaterThan(0);
+
+    const retry = await worker.fetch(webhookRequest({ id: mockEvent.id }), env);
+    expect(retry.status).toBe(200);
+    expect(calls.updates).toBe(1); // the retry actually deducted
+  });
+
+  it('applies every line item in a single batch (all-or-nothing)', async () => {
+    const { db, calls } = claimDb();
+    const env = { STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: 'whsec_x', DB: db };
+
+    mockLineItems.data = [
+      { quantity: 1, price: { product: 'prod_a' } },
+      { quantity: 2, price: { product: 'prod_b' } },
+    ];
+
+    const res = await worker.fetch(webhookRequest({ id: mockEvent.id }), env);
+    expect(res.status).toBe(200);
+    expect(calls.batches).toBe(1);
+    expect(calls.updates).toBe(2);
+  });
 });
 
 describe('POST /api/upload', () => {
@@ -259,6 +376,23 @@ describe('POST /api/upload', () => {
     }), env);
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe('Image size cannot exceed 10MB');
+  });
+
+  // Regression: the size check used to run only after the whole body had been
+  // buffered, so a huge declared upload was read into memory before rejection.
+  it('rejects an over-size upload from Content-Length without reading the body', async () => {
+    const env = uploadEnv();
+    const req = new Request('https://example.com/api/upload', {
+      method: 'POST',
+      headers: { 'content-type': 'image/jpeg' },
+      body: 'tiny',
+    });
+    req.headers.set('content-length', String(11 * 1024 * 1024));
+
+    const res = await worker.fetch(req, env);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('Image size cannot exceed 10MB');
+    expect(env.PHOTOS.put).not.toHaveBeenCalled();
   });
 
   it('accepts real JPEG bytes and stores the sniffed content-type', async () => {

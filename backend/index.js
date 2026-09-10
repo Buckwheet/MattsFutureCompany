@@ -14,6 +14,9 @@ const ALLOWED_ORIGINS = [
 function getCorsHeaders(request) {
   const origin = request.headers.get('Origin');
   const headers = {
+    // ACAO is derived from the request, so any shared cache (edge, proxy) must
+    // key on Origin or it can hand one origin's ACAO to a different origin.
+    'Vary': 'Origin',
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cf-Access-Jwt-Assertion',
     'Access-Control-Max-Age': '86400',
@@ -43,6 +46,38 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// Escape user-provided values before embedding in an email HEADER (subject).
+// HTML-escaping is not enough here: a bare CR/LF can smuggle extra headers.
+export function sanitizeHeader(value, maxLength = 100) {
+  // Control characters (incl. CR/LF) become spaces: a bare newline in a subject
+  // is what lets an attacker smuggle additional email headers.
+  const cleaned = String(value ?? '')
+    .split('')
+    .map(ch => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127) ? ' ' : ch)
+    .join('');
+  return cleaned.trim().slice(0, maxLength);
+}
+
+// Thrown by requireAuth() so routes can map auth failures to 401 without
+// string-matching error messages (a DB error mentioning "Unauthorized" used to
+// become a 401; a reworded auth failure used to become a 500).
+export class AuthError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+// Map a caught route error to a response: auth failures are 401, everything
+// else is logged server-side and returned as a generic error.
+function routeError(e, message, corsHeaders, status = 500) {
+  if (e instanceof AuthError) {
+    return corsResponse({ error: e.message }, 401, corsHeaders);
+  }
+  console.error('Route error:', e?.message || e);
+  return corsResponse({ error: message }, status, corsHeaders);
 }
 
 // --- Lead input validation (trust boundary: public POST /) ---
@@ -84,6 +119,32 @@ async function verifyTurnstile(env, token, ip) {
   if (!res.ok) return false;
   const data = await res.json();
   return data.success === true;
+}
+
+// The customer auto-response is the one email we send to an address the
+// *submitter* chooses, which makes it a backscatter vector aimed at arbitrary
+// third parties from matt's domain. Cap it at one per recipient per UTC day.
+// Returns true if this submission may send an auto-response.
+async function claimAutoRespond(env, email) {
+  const day = new Date().toISOString().slice(0, 10);
+  try {
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS lead_autorespond (
+        email TEXT NOT NULL,
+        day TEXT NOT NULL,
+        PRIMARY KEY (email, day)
+      )
+    `).run();
+    const res = await env.DB.prepare(
+      "INSERT OR IGNORE INTO lead_autorespond (email, day) VALUES (?, ?)"
+    ).bind(email.toLowerCase(), day).run();
+    return res.meta?.changes > 0;
+  } catch (e) {
+    // D1 unavailable: skip the auto-response rather than risk unbounded sends.
+    // Matt's lead notification is unaffected, so no lead is ever lost.
+    console.error('Auto-respond cap check failed, skipping auto-response:', e.message);
+    return false;
+  }
 }
 
 // Magic-byte sniffing: trust the file, not the client's Content-Type header.
@@ -280,6 +341,11 @@ async function verifyAccessJwt(request, env) {
     const header = JSON.parse(base64UrlDecode(headerB64));
     const payload = JSON.parse(base64UrlDecode(payloadB64));
 
+    // Pin the algorithm. Without this, a token could carry a lying `alg` (e.g.
+    // HS256) while still being verified as RS256, or invite alg-confusion
+    // tricks if the key source ever changes.
+    if (header.alg !== 'RS256') return false;
+
     const authDomain = "petersonenginerepair.cloudflareaccess.com";
     
     // Verify issuer, audience, user, and expiration claims
@@ -378,11 +444,11 @@ export default {
         return true;
       }
       if (!env.CLOUDFLARE_ACCESS_AUD) {
-        throw new Error('Unauthorized: Access is not configured');
+        throw new AuthError('Unauthorized: Access is not configured');
       }
       const isValid = await verifyAccessJwt(request, env);
       if (!isValid) {
-        throw new Error('Unauthorized: Valid Cloudflare Access JWT required');
+        throw new AuthError('Unauthorized: Valid Cloudflare Access JWT required');
       }
     };
 
@@ -430,9 +496,44 @@ export default {
         // Idempotency: claim the id BEFORE doing any work. INSERT OR IGNORE is
         // atomic — a concurrent redelivery of the same event loses the claim
         // (changes === 0) and is skipped, so the deduct can never run twice.
+        //
+        // Claims MUST be released if the work fails. Otherwise a transient
+        // error burns the id: the handler returns 500, Stripe redelivers, the
+        // retry sees "already processed" and returns 200 — and the deduction
+        // is silently lost forever.
+        const claimedIds = [];
         const claim = async (id) => {
           const res = await env.DB.prepare("INSERT OR IGNORE INTO processed_stripe_events (id) VALUES (?)").bind(id).run();
-          return res.meta?.changes > 0;
+          const won = res.meta?.changes > 0;
+          if (won) claimedIds.push(id);
+          return won;
+        };
+
+        // Hand back every claim taken during this request so the retry can redo it.
+        const releaseClaims = async () => {
+          for (const id of claimedIds) {
+            try {
+              await env.DB.prepare("DELETE FROM processed_stripe_events WHERE id = ?").bind(id).run();
+            } catch (releaseErr) {
+              console.error(`Failed to release claim ${id}:`, releaseErr.message);
+            }
+          }
+          claimedIds.length = 0;
+        };
+
+        // Deduct in a single D1 batch (implicit transaction): either every line
+        // item is applied or none is, so releasing a claim can never leave a
+        // half-applied deduction behind.
+        const applyDeductions = async (items) => {
+          const statements = items
+            .filter(item => item.price && item.price.product)
+            .map(item => env.DB.prepare(`
+              UPDATE parts
+              SET quantity = MAX(0, quantity - ?)
+              WHERE stripe_product_id = ?
+            `).bind(item.quantity, item.price.product));
+          if (statements.length === 0) return;
+          await env.DB.batch(statements);
         };
 
         if (!(await claim(event.id))) {
@@ -449,20 +550,17 @@ export default {
             return corsResponse({ received: true }, 200, corsHeaders);
           }
 
-          if (!(await claim(session.id))) {
-            console.log(`Checkout session ${session.id} already processed. Skipping.`);
-            return corsResponse({ received: true }, 200, corsHeaders);
-          }
-
-          const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-          for (const item of lineItems.data) {
-            if (item.price && item.price.product) {
-              await env.DB.prepare(`
-                UPDATE parts
-                SET quantity = MAX(0, quantity - ?)
-                WHERE stripe_product_id = ?
-              `).bind(item.quantity, item.price.product).run();
+          try {
+            if (!(await claim(session.id))) {
+              console.log(`Checkout session ${session.id} already processed. Skipping.`);
+              return corsResponse({ received: true }, 200, corsHeaders);
             }
+
+            const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+            await applyDeductions(lineItems.data);
+          } catch (e) {
+            await releaseClaims();
+            throw e;
           }
         }
 
@@ -474,19 +572,16 @@ export default {
             return corsResponse({ received: true }, 200, corsHeaders);
           }
 
-          if (!(await claim(invoice.id))) {
-            console.log(`Invoice ${invoice.id} already processed. Skipping.`);
-            return corsResponse({ received: true }, 200, corsHeaders);
-          }
-
-          for (const item of invoice.lines.data) {
-            if (item.price && item.price.product) {
-              await env.DB.prepare(`
-                UPDATE parts
-                SET quantity = MAX(0, quantity - ?)
-                WHERE stripe_product_id = ?
-              `).bind(item.quantity, item.price.product).run();
+          try {
+            if (!(await claim(invoice.id))) {
+              console.log(`Invoice ${invoice.id} already processed. Skipping.`);
+              return corsResponse({ received: true }, 200, corsHeaders);
             }
+
+            await applyDeductions(invoice.lines.data);
+          } catch (e) {
+            await releaseClaims();
+            throw e;
           }
         }
 
@@ -521,8 +616,7 @@ export default {
           }
         }, 200, corsHeaders);
       } catch (e) {
-        const isAuthError = e.message.includes('Unauthorized');
-        return corsResponse({ error: isAuthError ? e.message : 'Internal Server Error' }, isAuthError ? 401 : 500, corsHeaders);
+        return routeError(e, 'Internal Server Error', corsHeaders);
       }
     }
 
@@ -557,8 +651,7 @@ export default {
         }
         return corsResponse({ success: false }, 200, corsHeaders);
       } catch (e) {
-        const isAuthError = e.message.includes('Unauthorized');
-        return corsResponse({ error: isAuthError ? e.message : 'Lookup failed' }, isAuthError ? 401 : 500, corsHeaders);
+        return routeError(e, 'Lookup failed', corsHeaders);
       }
     }
 
@@ -584,8 +677,16 @@ export default {
       try {
         await requireAuth();
 
+        // Reject a declared over-size upload BEFORE reading the body. Buffering a
+        // huge request just to reject it is a memory-DoS with no upside.
+        const declaredLength = Number(request.headers.get('Content-Length'));
+        if (Number.isFinite(declaredLength) && declaredLength > 10 * 1024 * 1024) {
+          return corsResponse({ error: 'Image size cannot exceed 10MB' }, 400, corsHeaders);
+        }
+
         // Buffer and inspect the real bytes — never trust the client's
-        // Content-Type or Content-Length (both are trivially spoofed).
+        // Content-Type or Content-Length (both are trivially spoofed), so the
+        // cap is re-checked against the body itself below.
         const buf = await request.arrayBuffer();
         if (buf.byteLength > 10 * 1024 * 1024) { // 10MB limit, enforced on the body itself
           return corsResponse({ error: 'Image size cannot exceed 10MB' }, 400, corsHeaders);
@@ -602,8 +703,7 @@ export default {
         });
         return corsResponse({ success: true, url: `${url.origin}/api/photos/${key}` }, 200, corsHeaders);
       } catch (e) {
-        const isAuthError = e.message.includes('Unauthorized');
-        return corsResponse({ error: isAuthError ? e.message : 'Upload failed' }, isAuthError ? 401 : 500, corsHeaders);
+        return routeError(e, 'Upload failed', corsHeaders);
       }
     }
 
@@ -614,8 +714,7 @@ export default {
         const { results } = await env.DB.prepare("SELECT * FROM parts ORDER BY name ASC").all();
         return corsResponse(results, 200, corsHeaders);
       } catch (e) {
-        const isAuthError = e.message.includes('Unauthorized');
-        return corsResponse({ error: isAuthError ? e.message : 'Failed to fetch parts' }, isAuthError ? 401 : 500, corsHeaders);
+        return routeError(e, 'Failed to fetch parts', corsHeaders);
       }
     }
 
@@ -627,8 +726,7 @@ export default {
         await env.DB.prepare("DELETE FROM parts WHERE id = ?").bind(id).run();
         return corsResponse({ success: true }, 200, corsHeaders);
       } catch (e) {
-        const isAuthError = e.message.includes('Unauthorized');
-        return corsResponse({ error: isAuthError ? e.message : 'Delete failed' }, isAuthError ? 401 : 500, corsHeaders);
+        return routeError(e, 'Delete failed', corsHeaders);
       }
     }
 
@@ -644,8 +742,7 @@ export default {
         await env.DB.prepare("UPDATE parts SET quantity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(numQuantity, id).run();
         return corsResponse({ success: true }, 200, corsHeaders);
       } catch (e) {
-        const isAuthError = e.message.includes('Unauthorized');
-        return corsResponse({ error: isAuthError ? e.message : 'Adjustment failed' }, isAuthError ? 401 : 500, corsHeaders);
+        return routeError(e, 'Adjustment failed', corsHeaders);
       }
     }
 
@@ -739,8 +836,7 @@ export default {
 
         return corsResponse({ success: true, stripeProductId }, 200, corsHeaders);
       } catch (e) {
-        const isAuthError = e.message.includes('Unauthorized');
-        return corsResponse({ error: isAuthError ? e.message : 'Save failed' }, isAuthError ? 401 : 500, corsHeaders);
+        return routeError(e, 'Save failed', corsHeaders);
       }
     }
 
@@ -759,8 +855,7 @@ export default {
         const result = await buildEstimate(env, { lat, lng, address });
         return corsResponse(result, 200, corsHeaders);
       } catch (e) {
-        console.error('Estimate Error:', e.message);
-        return corsResponse({ error: 'Could not calculate estimate' }, 502, corsHeaders);
+        return routeError(e, 'Could not calculate estimate', corsHeaders, 502);
       }
     }
 
@@ -879,7 +974,7 @@ export default {
               body: JSON.stringify({
                 from: 'Peterson Leads <leads@petersonsmallenginerepair.com>',
                 to: 'matt@petersonsmallenginerepair.com',
-                subject: `🔧 New Lead: ${name} (${equipment})`,
+                subject: `🔧 New Lead: ${sanitizeHeader(name)} (${sanitizeHeader(equipment)})`,
                 html: `
                   <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                     <h2 style="color: #0b1a14;">New Service Request</h2>
@@ -909,20 +1004,23 @@ export default {
             console.error('Notification Error (Skipping):', e.message);
           }
 
-          // 4. AUTO-RESPONSE TO CUSTOMER (Optional)
-          try {
-            const customerDeliveryBlock = buildCustomerDeliveryBlock(pickup_required, delivery_address);
-            await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${env.RESEND_API_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                from: 'Matt Peterson <matt@petersonsmallenginerepair.com>',
-                to: email,
-                subject: `🔧 Request Received: Repairing your ${equipment}`,
-                html: `
+          // 4. AUTO-RESPONSE TO CUSTOMER (Optional) — at most one per recipient
+          // per day, so a spam run can't turn matt's domain into a backscatter
+          // cannon aimed at a third party.
+          if (await claimAutoRespond(env, email)) {
+            try {
+              const customerDeliveryBlock = buildCustomerDeliveryBlock(pickup_required, delivery_address);
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  from: 'Matt Peterson <matt@petersonsmallenginerepair.com>',
+                  to: email,
+                  subject: `🔧 Request Received: Repairing your ${sanitizeHeader(equipment)}`,
+                  html: `
                   <div style="font-family: sans-serif; max-width: 600px; padding: 30px; color: #333; line-height: 1.6;">
                     <h2 style="color: #0b1a14;">Hi ${escapeHtml(name)}, I've received your request!</h2>
                     <p>Thanks for reaching out. I'm currently reviewing the details of your <strong>${escapeHtml(equipment)}</strong> repair and I'll be in touch shortly via phone or email to discuss the next steps.</p>
@@ -943,10 +1041,13 @@ export default {
                     </p>
                   </div>
                 `
-              }),
-            });
-          } catch (e) {
-            console.error('Auto-response Error (Skipping):', e.message);
+                }),
+              });
+            } catch (e) {
+              console.error('Auto-response Error (Skipping):', e.message);
+            }
+          } else {
+            console.log(`Auto-response skipped for ${email} (already sent today)`);
           }
         }
 
