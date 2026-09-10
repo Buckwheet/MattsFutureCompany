@@ -111,7 +111,8 @@ browser and network.
 
 Confirmed against production 2026-09-10:
 
-- [x] `npm run verify:ui` → ALL CHECKS PASSED (33 checks). Concretely: eyebrow clears the nav by
+- [x] `npm run verify:ui` → ALL CHECKS PASSED (**32** checks: 9 per mobile viewport, 5 desktop).
+      Concretely: eyebrow clears the nav by
       35px, the Call button sits 52px above `#trust`, dots 12px clear, `#trust` no longer slices
       either, `#hero` clips nothing, no horizontal overflow, one `<h1>`, one active slide — at
       390px, 375px and 360px wide. Proven to bite: forcing the old 500px mobile hero on a
