@@ -17,10 +17,41 @@ Owner-facing operating instructions live in `MATTS_OPS_MANUAL.md`. This file is 
 | Run all tests | `npm test` | repo root (delegates to backend) |
 | Run one test file | `npx vitest run test/<file>.test.js` | backend/ |
 | Full gate (pre-commit) | `npm run check` | repo root (lint + test) |
+| **UI / layout verification (opt-in)** | `npm run verify:ui` | repo root — see §1a |
 
-Linting is owned by the **root** ESLint config (`eslint.config.js`) and covers all three
+Linting is owned by the **root** ESLint config (`eslint.config.js`) and covers all four
 codebases: `backend/` (node globals), `site/` (inline scripts via eslint-plugin-html),
-`parts-manager/` (React hooks rules). Do NOT add a per-package linter; one config, one tool.
+`parts-manager/` (React hooks rules), `tools/` (node globals, except `page-measure.mjs` which
+is browser globals because it runs inside the page). Do NOT add a per-package linter; one
+config, one tool.
+
+## 1a. UI verification harness (`tools/verify-ui.mjs`)
+
+Context matters here: a mobile hero layout bug once reached production because **no lint, unit
+test, or curl check can see layout**, and the agent cannot interpret images in this environment
+(`view_image` reports no image-understanding model). A screenshot-only harness therefore proves
+nothing to the agent.
+
+So the harness measures the **DOM** at real mobile viewports and asserts the invariants that bug
+violated — eyebrow clears the fixed nav, the Call button clears `#trust`, dots clear `#trust`,
+and `#hero` does not clip its content (`scrollHeight > clientHeight` on an `overflow:hidden`
+box). Failures print the pixel values, which both a human and an agent can read.
+
+- `npm run verify:ui` — against production.
+- `npm run verify:ui -- http://localhost:8788` — against a local server.
+- `npm run verify:ui -- <url> --shots <dir>` — also write PNGs for a human to eyeball.
+- `UI_BROWSER=msedge` to use Edge instead of Chrome.
+
+Rules:
+1. **Never add it to `npm run check` or the pre-commit hook.** It needs a browser and network;
+   the gate must keep passing offline.
+2. It drives the system-installed Chrome via a Playwright *channel*, so no browser binaries are
+   downloaded. Keep it that way — `playwright-core`, never the full `playwright` install.
+3. When you fix a visual bug, prove the harness catches it: reproduce the bug on a throwaway
+   copy of `site/` (never mutate the repo or production) and confirm a FAIL. A harness that only
+   ever passes is decoration.
+4. Emulation is faithful for layout bugs but **not** for Safari-specific ones — the hero uses
+   `dvh`, which real iOS Safari handles differently. It narrows the gap; it does not close it.
 
 Linter decision: **ESLint, not Biome.** The repo already shipped a proper ESLint 10 flat
 config in parts-manager; Biome would be a second tool + deleted config for zero gain, and

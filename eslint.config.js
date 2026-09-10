@@ -26,6 +26,25 @@ export default defineConfig([
     },
   },
   {
+    files: ['tools/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node,
+      sourceType: 'module',
+      ecmaVersion: 'latest',
+    },
+  },
+  {
+    // page-measure.mjs is serialised by Playwright and executed INSIDE the page,
+    // so it legitimately references browser globals. Everything else in tools/
+    // is Node driver code and must not.
+    files: ['tools/page-measure.mjs'],
+    languageOptions: {
+      globals: globals.browser,
+      sourceType: 'module',
+      ecmaVersion: 'latest',
+    },
+  },
+  {
     files: ['parts-manager/src/**/*.{js,jsx}'],
     plugins: { react, 'react-hooks': reactHooks },
     extends: [reactHooks.configs.flat.recommended],
