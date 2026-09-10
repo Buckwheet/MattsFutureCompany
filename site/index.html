@@ -5,15 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Peterson Small Engine Repair | Expert Repair in Coon Rapids, MN</title>
   <meta name="description" content="Expert small engine repair in Coon Rapids, MN. Fast, honest, and affordable repair for lawn mowers, snow blowers, trimmers, and more. Free estimates.">
-  <meta name="keywords" content="small engine repair, lawn mower repair, snow blower repair, engine rebuild, Coon Rapids, MN">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   <link rel="canonical" href="https://petersonsmallenginerepair.com/">
+  <link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="apple-touch-icon" href="images/icon-180.png">
+
+  <!-- Open Graph / Twitter — drives previews when the page is shared -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Peterson Small Engine Repair">
+  <meta property="og:url" content="https://petersonsmallenginerepair.com/">
+  <meta property="og:title" content="Expert Small Engine Repair in Coon Rapids, MN">
+  <meta property="og:description" content="Lawn mower, snow blower, and small engine repair for the North Metro. Free estimates, $65/hr labor, pickup and delivery available.">
+  <meta property="og:image" content="https://petersonsmallenginerepair.com/images/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Small engine repair shop in Coon Rapids, Minnesota">
+  <meta property="og:locale" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Expert Small Engine Repair in Coon Rapids, MN">
+  <meta name="twitter:description" content="Lawn mower, snow blower, and small engine repair for the North Metro. Free estimates, pickup and delivery available.">
+  <meta name="twitter:image" content="https://petersonsmallenginerepair.com/images/og-image.jpg">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Serif+Display&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=1.0.8">
+  <link rel="stylesheet" href="style.css?v=1.0.10">
+  <!-- LCP element: the always-active first hero slide -->
+  <link rel="preload" as="image" href="images/hero.webp" type="image/webp" fetchpriority="high">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   
   <!-- LocalBusiness Schema for SEO -->
@@ -22,14 +39,13 @@
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "name": "Peterson Small Engine Repair",
-    "image": "https://petersonsmallenginerepair.com/images/hero.png",
+    "image": "https://petersonsmallenginerepair.com/images/hero.webp",
     "@id": "https://petersonsmallenginerepair.com/#organization",
     "url": "https://petersonsmallenginerepair.com",
     "telephone": "+17633289259",
     "priceRange": "$$",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "",
       "addressLocality": "Coon Rapids",
       "addressRegion": "MN",
       "postalCode": "55448",
@@ -40,13 +56,17 @@
       { "@type": "City", "name": "Blaine" },
       { "@type": "City", "name": "Andover" },
       { "@type": "City", "name": "Anoka" },
-      { "@type": "City", "name": "Ham Lake" }
+      { "@type": "City", "name": "Ham Lake" },
+      { "@type": "City", "name": "Fridley" },
+      { "@type": "City", "name": "Spring Lake Park" },
+      { "@type": "City", "name": "Ramsey" },
+      { "@type": "City", "name": "Champlin" },
+      { "@type": "City", "name": "Brooklyn Park" },
+      { "@type": "City", "name": "Lino Lakes" },
+      { "@type": "City", "name": "East Bethel" },
+      { "@type": "City", "name": "Maple Grove" },
+      { "@type": "City", "name": "Elk River" }
     ],
-    "geo": {
-      "@type": "GeoCoordinates",
-      "latitude": 45.1732,
-      "longitude": -93.3030
-    },
     "openingHoursSpecification": [
       {
         "@type": "OpeningHoursSpecification",
@@ -101,7 +121,7 @@
 <nav>
   <div class="wrap nav-inner">
     <a href="#" class="logo">
-      <img src="images/logo.png?v=1.0.5" alt="Peterson Small Engine Repair Logo" class="logo-img">
+      <img src="images/logo.webp?v=1.0.5" alt="Peterson Small Engine Repair Logo" class="logo-img" width="144" height="36">
       <span class="logo-text">Peterson Small Engine Repair</span>
     </a>
     <button class="menu-btn" aria-label="Toggle Menu">☰</button>
@@ -120,7 +140,8 @@
   <!-- Hero Carousel -->
   <header id="hero">
     <!-- Slide 1 -->
-    <div class="slide active" style="background-image: url('images/hero.png');">
+    <div class="slide active">
+      <img class="slide-bg" src="images/hero.webp" alt="" width="1024" height="1024" fetchpriority="high" decoding="async">
       <div class="slide-overlay"></div>
       <div class="slide-content">
         <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Reliable Local Service</span>
@@ -134,11 +155,12 @@
     </div>
     
     <!-- Slide 2: Spring Special (April 1 - July 1) -->
-    <div class="slide" data-start-month="4" data-start-day="1" data-end-month="7" data-end-day="1" style="background-image: url('images/spring.png');">
+    <div class="slide" data-start-month="4" data-start-day="1" data-end-month="7" data-end-day="1">
+      <img class="slide-bg" src="images/spring.webp" alt="" width="1024" height="1024" loading="lazy" decoding="async">
       <div class="slide-overlay"></div>
       <div class="slide-content">
         <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Spring Special</span>
-        <h1>$89 Spring Tune-Up</h1>
+        <h2 class="slide-title">$89 Spring Tune-Up</h2>
         <p>Get ready for mowing season! Includes oil change, new spark plug, air filter replacement, and blade sharpening — everything your riding mower or zero-turn needs to tackle the season.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary">Book Your Tune-Up</a>
@@ -147,11 +169,12 @@
     </div>
 
     <!-- Slide 3: Summer Special (July 1 - September 1) -->
-    <div class="slide" data-start-month="7" data-start-day="1" data-end-month="9" data-end-day="1" style="background-image: url('images/summer.png');">
+    <div class="slide" data-start-month="7" data-start-day="1" data-end-month="9" data-end-day="1">
+      <img class="slide-bg" src="images/summer.webp" alt="" width="1376" height="768" loading="lazy" decoding="async">
       <div class="slide-overlay"></div>
       <div class="slide-content">
         <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Summer Special</span>
-        <h1>$89 Summer Maintenance</h1>
+        <h2 class="slide-title">$89 Summer Maintenance</h2>
         <p>Keep your mower running strong all summer! Get a quick check-up, fresh oil, new spark plug, and clean filters. Fast turnaround so you don't miss a single mow.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary">Schedule Summer Service</a>
@@ -160,11 +183,12 @@
     </div>
 
     <!-- Slide 4: Snow Blower Prep (September 1 - January 1) -->
-    <div class="slide" data-start-month="9" data-start-day="1" data-end-month="1" data-end-day="1" style="background-image: url('images/snow.png');">
+    <div class="slide" data-start-month="9" data-start-day="1" data-end-month="1" data-end-day="1">
+      <img class="slide-bg" src="images/snow.webp" alt="" width="1024" height="1024" loading="lazy" decoding="async">
       <div class="slide-overlay"></div>
       <div class="slide-content">
         <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Fall Special</span>
-        <h1>$89 Snow Blower Prep</h1>
+        <h2 class="slide-title">$89 Snow Blower Prep</h2>
         <p>Beat the winter snow! Pre-season snow blower tune-up. Includes oil change, spark plug check, skid shoe adjustments, carburetor cleaning, and belt inspection.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary">Prepare For Snow</a>
@@ -173,38 +197,26 @@
     </div>
 
     <!-- Slide 5: Mid-Winter Snow Blower Tune-Up (January 1 - April 1) -->
-    <div class="slide" data-start-month="1" data-start-day="1" data-end-month="4" data-end-day="1" style="background-image: url('images/snow.png');">
+    <div class="slide" data-start-month="1" data-start-day="1" data-end-month="4" data-end-day="1">
+      <img class="slide-bg" src="images/snow.webp" alt="" width="1024" height="1024" loading="lazy" decoding="async">
       <div class="slide-overlay"></div>
       <div class="slide-content">
         <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Winter Special</span>
-        <h1>$89 Snow Blower Tune-Up</h1>
+        <h2 class="slide-title">$89 Snow Blower Tune-Up</h2>
         <p>Keep your snow blower clearing strong all winter! Includes oil change, new spark plug, skid shoe adjustments, scraper bar check, belt inspection, and carburetor clean. Beat the next big blizzard.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary">Book Winter Service</a>
         </div>
       </div>
     </div>
-    
-    <!-- Slide 3 (Hidden) 
-    <div class="slide" style="background-image: url('images/engine.png');">
-      <div class="slide-overlay"></div>
-      <div class="slide-content">
-        <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">Expert Repair</span>
-        <h1>Complete Engine Rebuilds</h1>
-        <p>Don't replace your expensive equipment. Complete teardown and rebuild services available for Briggs & Stratton, Kohler, Honda, and more. Save hundreds over buying new.</p>
-        <div class="hero-actions">
-          <a href="#services" class="btn btn-primary">See All Services</a>
-        </div>
-      </div>
-    </div>
-    -->
 
-    <!-- Slide 3 -->
-    <div class="slide" style="background-image: url('images/mower.png');">
+    <!-- Slide 6 -->
+    <div class="slide">
+      <img class="slide-bg" src="images/mower.webp" alt="" width="1024" height="1024" loading="lazy" decoding="async">
       <div class="slide-overlay"></div>
       <div class="slide-content">
         <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">What We Fix</span>
-        <h1>Lawn Mower Repair</h1>
+        <h2 class="slide-title">Lawn Mower Repair</h2>
         <p>Tune-ups and repair for zero-turns, riding mowers, and push mowers. I handle blade sharpening, oil changes, carburetor rebuilds, and belt replacement.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary">Schedule Service</a>
@@ -212,12 +224,13 @@
       </div>
     </div>
 
-    <!-- Slide 4 -->
-    <div class="slide" style="background-image: url('images/snow.png');">
+    <!-- Slide 7 -->
+    <div class="slide">
+      <img class="slide-bg" src="images/snow.webp" alt="" width="1024" height="1024" loading="lazy" decoding="async">
       <div class="slide-overlay"></div>
       <div class="slide-content">
         <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">What We Fix</span>
-        <h1>Snow Blower Repair</h1>
+        <h2 class="slide-title">Snow Blower Repair</h2>
         <p>Expert service for single-stage and two-stage snow blowers. Auger and impeller repair, shear pins, carburetor cleaning, and fuel system service.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary">Schedule Service</a>
@@ -225,12 +238,13 @@
       </div>
     </div>
 
-    <!-- Slide 5 -->
-    <div class="slide" style="background-image: url('images/chainsaw.png');">
+    <!-- Slide 8 -->
+    <div class="slide">
+      <img class="slide-bg" src="images/chainsaw.webp" alt="" width="1024" height="1024" loading="lazy" decoding="async">
       <div class="slide-overlay"></div>
       <div class="slide-content">
         <span class="eyebrow" style="color: #fff; background: var(--accent); padding: 4px 12px; border-radius: 4px;">What We Fix</span>
-        <h1>Trimmers & Chainsaws</h1>
+        <h2 class="slide-title">Trimmers & Chainsaws</h2>
         <p>Service for 2-stroke and 4-stroke handheld equipment including trimmers, chainsaws, and blowers. Chain sharpening, fuel lines, and ignition repair.</p>
         <div class="hero-actions">
           <a href="#contact" class="btn btn-primary">Schedule Service</a>
@@ -321,7 +335,7 @@
     <div class="wrap">
       <div id="about" class="about-inner fade-up">
         <div class="about-photo">
-          <img src="images/matt.png" alt="Matt — owner and operator of Peterson Small Engine Repair" loading="lazy">
+          <img src="images/matt.webp" alt="Matt — owner and operator of Peterson Small Engine Repair" width="900" height="900" loading="lazy" decoding="async">
         </div>
         <div>
           <span class="eyebrow">About Matt</span>
@@ -415,7 +429,7 @@
       <div class="faq-item">
         <details>
           <summary>What payment methods do you accept?</summary>
-          <p>I accept all major **Credit Cards, Apple Pay, Google Pay, and Cash**. Through our secure integration with **Stripe**, I can process your payment on-site via Tap to Pay, or send a secure payment link directly to your phone. Payment is only due when the work is fully completed and you are satisfied.</p>
+          <p>I accept all major <strong>Credit Cards, Apple Pay, Google Pay, and Cash</strong>. Through our secure integration with <strong>Stripe</strong>, I can process your payment on-site via Tap to Pay, or send a secure payment link directly to your phone. Payment is only due when the work is fully completed and you are satisfied.</p>
         </details>
       </div>
     </div>
@@ -859,7 +873,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const formData = new FormData(serviceForm);
       const data = Object.fromEntries(formData.entries());
-      // Cloudflare Turnstile bot token (test sitekey until real keys are configured — see PROCEDURE.md)
+      // Cloudflare Turnstile bot token. The site key above is public by design;
+      // the matching secret lives only in the Worker (TURNSTILE_SECRET_KEY).
       if (window.turnstile) data.cf_token = window.turnstile.getResponse();
       
       try {
