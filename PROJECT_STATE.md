@@ -1,29 +1,40 @@
 # Project State — Peterson Small Engine Repair
 
 ## Goal
-Fix mobile hero carousel layout where content overflows and gets clipped on mobile devices (eyebrow badge cut off at the top, "Call" button cut off by overlapping `#trust` section at the bottom).
+Complete Phase 1 dependency security upgrades across root, `parts-manager/`, and `backend/` packages with zero vulnerabilities, passing lint, passing build, and 61/61 tests passing.
 
 ## What changed
-- Identified and fixed root cause in `site/style.css`:
-  - Migrated `#hero` carousel and `.slide` elements from `position: absolute` to modern CSS Grid stacking (`grid-template-areas: "hero-slide"`).
-  - The hero container now naturally expands to fit the tallest slide content in the normal document flow on mobile instead of collapsing to a fixed 500px min-height.
-  - Added `visibility: hidden; pointer-events: none;` to inactive slides to prevent phantom clicks.
-  - Optimized mobile typography (`font-size: 1.85rem` for titles, `1rem` for description) and spacing (`padding: 36px 20px 92px` on `.slide-content`) so the top eyebrow badge is completely clear of the nav, and the bottom "Call" button is 52px above the overlapping `#trust` section.
-  - Standardized mobile button sizing (`width: 100%; max-width: 290px`) and improved overlay contrast (`linear-gradient(to bottom, ...)`).
-  - Positioned `.carousel-dots` at `bottom: 52px` so they sit comfortably above `#trust`'s -40px curved overlap.
-  - Bumped stylesheet query version to `style.css?v=1.0.10` in `site/index.html` and `site/404.html` to bust Cloudflare Pages & mobile browser HTTP caches.
+- Created feature branch `fix/round-4-security-hardening`.
+- Root: Ran `npm audit fix`, resolving transitive vulnerabilities in `brace-expansion`, `js-yaml`, and `zod` (0 vulnerabilities).
+- Parts Manager (`parts-manager/`):
+  - Upgraded `axios` to `^1.20.0` and `vite` to `^8.1.6` (resolving prototype pollution, header injection, Windows UNC/NTLMv2 leak, and DoS advisories).
+  - Pruned redundant devDependencies (`eslint`, `@eslint/js`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`) which previously caused minimatch security conflicts and duplicated root ESLint config.
+  - Successfully built production bundle with Vite v8.3.6 (`npm --prefix parts-manager run build`).
+  - Audited with 0 vulnerabilities.
+- Backend (`backend/`):
+  - Upgraded `wrangler` to `^4.158.0`, `vitest` to `^5.1.0`, and `vite` to `^8.1.6`.
+  - Ran `npm audit fix` resolving `qs` and `@vitest/mocker` / `tinypool` / `undici` / `ws` advisories (0 vulnerabilities).
+  - Executed Vitest test suite: 4/4 files, 61/61 tests passed.
+- Pre-commit Gate: Ran `npm run check` (ESLint across backend, site, parts-manager, tools + 61/61 Vitest tests). Zero errors.
 
 ## Commands run + results
-- `npm run check`: ESLint clean across backend, site, and parts-manager; Vitest 61/61 tests passed.
-- `git diff site`: Confirmed all CSS changes and cache-busting version bumps.
+- `git checkout -b fix/round-4-security-hardening`: Switched to new branch.
+- `npm audit fix`: `changed 3 packages, and audited 257 packages ... found 0 vulnerabilities`.
+- `npm --prefix parts-manager run build`: Vite build completed in 740ms with clean production assets.
+- `npm --prefix backend test`: Vitest v5.1.0 ran 4 test files, 61 tests passed in 540ms.
+- `npm run check`: Lint clean across all 4 directories, 61/61 tests passed.
+- `npm audit; npm --prefix parts-manager audit; npm --prefix backend audit`: All reported 0 vulnerabilities.
 
 ## Files touched
-- `site/style.css`
-- `site/index.html`
-- `site/404.html`
+- `instruction.md`
 - `PROJECT_STATE.md`
+- `package-lock.json`
+- `parts-manager/package.json`
+- `parts-manager/package-lock.json`
+- `backend/package.json`
+- `backend/package-lock.json`
 
 ## Next 3 actions
-- [x] Refactor hero carousel layout in `site/style.css` to use CSS Grid so container height automatically grows to fit mobile content without clipping.
-- [x] Update mobile typography, spacing, and button width, and bump `style.css?v=1.0.10` in `site/index.html` and `site/404.html`.
-- [ ] User review and mobile device verification.
+- [ ] Push branch `fix/round-4-security-hardening` to remote repository `origin`.
+- [ ] Set up Phase 2 task specification for offload to Lenovo LOQ (`dsh` / `agent-loop.sh`).
+- [ ] Dispatch and monitor LOQ execution of Phase 2 backend input validation, JWT `aud` array handling, and R2 `/api/photos/:key` hardening.
