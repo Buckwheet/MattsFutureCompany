@@ -70,7 +70,7 @@ function App() {
 
         // Auto-Identify Lookup
         try {
-          const res = await axios.get(`${API_BASE}/api/lookup?upc=${decodedText}`);
+          const res = await axios.get(`${API_BASE}/api/lookup?upc=${encodeURIComponent(decodedText)}`);
           if (res.data.success) {
             setFormData(prev => ({ 
               ...prev, 

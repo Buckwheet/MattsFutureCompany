@@ -83,9 +83,34 @@ function routeError(e, message, corsHeaders, status = 500) {
 // --- Lead input validation (trust boundary: public POST /) ---
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const FIELD_LIMITS = { name: 100, email: 254, phone: 30, equipment: 100, issue: 2000, delivery_address: 500 };
+const NUMERIC_INPUT_MAX_LENGTH = 20;
+
+// A value is "present" for optional numeric fields only when it is not null,
+// undefined, or an all-whitespace string. The public form serialises untouched
+// hidden inputs as '', which must remain valid.
+function hasNumericValue(value) {
+  if (value == null) return false;
+  if (typeof value === 'string' && value.trim() === '') return false;
+  return true;
+}
+
+// Coerce only genuine numbers or numeric strings. Number(null) === 0 and
+// Number([]) === 0, so a naive Number() would let empty/odd values masquerade
+// as valid coordinates or money.
+function toFiniteNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  const num = Number(trimmed);
+  return Number.isFinite(num) ? num : null;
+}
 
 export function validateLeadInput(data) {
-  const { name, email, phone, equipment, issue, delivery_address } = data;
+  const {
+    name, email, phone, equipment, issue, delivery_address,
+    pickup_required, delivery_lat, delivery_lng, estimate, distance_miles
+  } = data || {};
   if (!name || !email || !phone || !equipment || !issue) {
     return { ok: false, error: 'All fields are required' };
   }
@@ -100,6 +125,69 @@ export function validateLeadInput(data) {
   if (delivery_address != null && (typeof delivery_address !== 'string' || delivery_address.length > FIELD_LIMITS.delivery_address)) {
     return { ok: false, error: 'Invalid delivery address' };
   }
+
+  // Client-controlled delivery fields are echoed into Matt's lead email, so
+  // reject anything that is not an explicit yes/no, a bounded coordinate pair,
+  // or a bounded non-negative number.
+  if (pickup_required != null && pickup_required !== 'Yes' && pickup_required !== 'No') {
+    return { ok: false, error: 'Invalid pickup choice' };
+  }
+
+  const hasLat = hasNumericValue(delivery_lat);
+  const hasLng = hasNumericValue(delivery_lng);
+  if (hasLat || hasLng) {
+    const lat = toFiniteNumber(delivery_lat);
+    const lng = toFiniteNumber(delivery_lng);
+    if (
+      lat === null || lng === null ||
+      lat < -90 || lat > 90 ||
+      lng < -180 || lng > 180
+    ) {
+      return { ok: false, error: 'Invalid delivery coordinates' };
+    }
+  }
+
+  for (const [field, value] of [['estimate', estimate], ['distance_miles', distance_miles]]) {
+    if (!hasNumericValue(value)) continue;
+    const num = toFiniteNumber(value);
+    if (num === null || num < 0 || String(value).length > NUMERIC_INPUT_MAX_LENGTH) {
+      return { ok: false, error: `Invalid ${field}` };
+    }
+  }
+
+  return { ok: true };
+}
+
+// Validate public /api/estimate input before any value reaches an ORS URL or
+// the customer-facing map link. Returns a shape that callers can either turn
+// into a 400 or use for normalised numeric values.
+export function validateEstimateInput(input = {}) {
+  const { lat, lng, address } = input || {};
+  const hasLat = lat != null;
+  const hasLng = lng != null;
+
+  if (hasLat || hasLng) {
+    const latNum = toFiniteNumber(lat);
+    const lngNum = toFiniteNumber(lng);
+    if (
+      latNum === null || lngNum === null ||
+      latNum < -90 || latNum > 90 ||
+      lngNum < -180 || lngNum > 180
+    ) {
+      return { ok: false, error: 'Invalid coordinates' };
+    }
+  }
+
+  if (address != null) {
+    if (typeof address !== 'string') {
+      return { ok: false, error: 'Invalid address' };
+    }
+    const trimmed = address.trim();
+    if (trimmed.length < 1 || trimmed.length > 500) {
+      return { ok: false, error: 'Invalid address' };
+    }
+  }
+
   return { ok: true };
 }
 
@@ -231,7 +319,7 @@ async function orsGeocode(env, address) {
 async function orsReverseGeocode(env, lat, lng) {
   const res = await fetch(
     `https://api.openrouteservice.org/geocode/reverse?api_key=${env.ORS_API_KEY}` +
-    `&point.lat=${lat}&point.lon=${lng}&size=1`
+    `&point.lat=${encodeURIComponent(lat)}&point.lon=${encodeURIComponent(lng)}&size=1`
   );
   if (!res.ok) throw new Error('Reverse geocode failed');
   const data = await res.json();
@@ -263,15 +351,29 @@ async function orsDrivingMiles(env, destLat, destLng) {
   return meters / METERS_PER_MILE;
 }
 
-export async function buildEstimate(env, { lat, lng, address }) {
-  let destLat = lat, destLng = lng, city = '', label = '';
+export async function buildEstimate(env, { lat, lng, address } = {}) {
+  const inputCheck = validateEstimateInput({ lat, lng, address });
+  if (!inputCheck.ok) {
+    const err = new Error(inputCheck.error);
+    err.status = 400;
+    throw err;
+  }
 
-  if ((destLat == null || destLng == null) && address) {
-    const g = await orsGeocode(env, address);
+  // Normalise validated numeric strings to numbers so ORS payloads and the map
+  // link never carry caller-controlled string fragments.
+  let destLat = lat != null ? Number(lat) : null;
+  let destLng = lng != null ? Number(lng) : null;
+  const trimmedAddress = typeof address === 'string' ? address.trim() : address;
+  let city = '', label = '';
+
+  if ((destLat == null || destLng == null) && trimmedAddress) {
+    const g = await orsGeocode(env, trimmedAddress);
     destLat = g.lat; destLng = g.lng; city = g.city; label = g.label;
   }
   if (destLat == null || destLng == null) {
-    throw new Error('No location provided');
+    const err = new Error('No location provided');
+    err.status = 400;
+    throw err;
   }
 
   const oneWayMiles = Math.round((await orsDrivingMiles(env, destLat, destLng)) * 10) / 10;
@@ -290,7 +392,7 @@ export async function buildEstimate(env, { lat, lng, address }) {
     city,
     inServiceArea: matchServiceArea(city),
     outOfRange: fee.outOfRange,
-    mapLink: `https://www.openstreetmap.org/?mlat=${destLat}&mlon=${destLng}#map=16/${destLat}/${destLng}`,
+    mapLink: `https://www.openstreetmap.org/?mlat=${encodeURIComponent(destLat)}&mlon=${encodeURIComponent(destLng)}#map=16/${encodeURIComponent(destLat)}/${encodeURIComponent(destLng)}`,
     deliveryAddress: label
   };
 }
@@ -345,12 +447,19 @@ async function verifyAccessJwt(request, env) {
     // HS256) while still being verified as RS256, or invite alg-confusion
     // tricks if the key source ever changes.
     if (header.alg !== 'RS256') return false;
+    // A missing/empty kid used to fall through to matching an undefined kid in
+    // the JWKS; require a real key id before selecting a certificate.
+    if (!header.kid || typeof header.kid !== 'string') return false;
 
     const authDomain = "petersonenginerepair.cloudflareaccess.com";
     
     // Verify issuer, audience, user, and expiration claims
     if (payload.iss !== `https://${authDomain}`) return false;
-    if (payload.aud !== env.CLOUDFLARE_ACCESS_AUD) return false;
+    // Cloudflare Access commonly emits `aud` as an array, so accept either form.
+    const audValid = Array.isArray(payload.aud)
+      ? payload.aud.includes(env.CLOUDFLARE_ACCESS_AUD)
+      : payload.aud === env.CLOUDFLARE_ACCESS_AUD;
+    if (!audValid) return false;
     if (payload.email !== "mattssmallenginerep@gmail.com") return false;
     if (payload.exp < Date.now() / 1000) return false;
     // Reject tokens whose not-before time is in the future (clock-skew guard)
@@ -374,7 +483,12 @@ async function verifyAccessJwt(request, env) {
     const enc = new TextEncoder();
     const data = enc.encode(`${headerB64}.${payloadB64}`);
     
-    const sigStr = atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/'));
+    // atob() requires padding; JWTs strip it. Pad here exactly like
+    // base64UrlDecode() does, otherwise valid tokens with an unpadded signature
+    // can throw and be rejected.
+    let signaturePadded = signatureB64.replace(/-/g, '+').replace(/_/g, '/');
+    while (signaturePadded.length % 4) signaturePadded += '=';
+    const sigStr = atob(signaturePadded);
     const sigBytes = new Uint8Array(sigStr.length);
     for (let i = 0; i < sigStr.length; i++) {
       sigBytes[i] = sigStr.charCodeAt(i);
@@ -396,23 +510,40 @@ async function verifyAccessJwt(request, env) {
 // protection is a Cloudflare Rate Limiting rule in the dashboard. Key is
 // route-scoped so estimate calls can't starve lead submissions.
 // ponytail: per-isolate map, upgrade to CF Rate Limiting rules if abuse persists
-const rateLimitMap = new Map();
+export const MAX_RATE_LIMIT_KEYS = 5000;
+export const rateLimitMap = new Map();
 let lastCleanup = Date.now();
 
-function checkRateLimit(key, maxRequests = 5, windowMs = 60000) {
+function evictExpiredRateLimitEntries(windowStart) {
+  for (const [mapKey, timestamps] of rateLimitMap.entries()) {
+    const valid = timestamps.filter(t => t > windowStart);
+    if (valid.length === 0) {
+      rateLimitMap.delete(mapKey);
+    } else {
+      rateLimitMap.set(mapKey, valid);
+    }
+  }
+}
+
+export function checkRateLimit(key, maxRequests = 5, windowMs = 60000) {
   const now = Date.now();
   const windowStart = now - windowMs;
 
   // Periodically evict fully expired IP entries (every 10 minutes)
   if (now - lastCleanup > 600000) {
     lastCleanup = now;
-    for (const [mapKey, timestamps] of rateLimitMap.entries()) {
-      const valid = timestamps.filter(t => t > windowStart);
-      if (valid.length === 0) {
-        rateLimitMap.delete(mapKey);
-      } else {
-        rateLimitMap.set(mapKey, valid);
-      }
+    evictExpiredRateLimitEntries(windowStart);
+  }
+
+  // Hard-cap the per-isolate map so spoofed/rotating IPs can't grow it without
+  // bound and exhaust worker memory. Expired entries go first; if the map is
+  // still at capacity, shed the oldest key before adding a new one.
+  if (rateLimitMap.size >= MAX_RATE_LIMIT_KEYS) {
+    evictExpiredRateLimitEntries(windowStart);
+    while (rateLimitMap.size >= MAX_RATE_LIMIT_KEYS) {
+      const oldestKey = rateLimitMap.keys().next().value;
+      if (oldestKey === undefined) break;
+      rateLimitMap.delete(oldestKey);
     }
   }
 
@@ -656,13 +787,19 @@ export default {
     }
 
     // --- ROUTE: GET /api/photos/:key (Serve Image - Public) ---
-    if (url.pathname.startsWith('/api/photos/')) {
-      const key = url.pathname.replace('/api/photos/', '');
+    if (url.pathname.startsWith('/api/photos/') && request.method === 'GET') {
+      const key = url.pathname.slice('/api/photos/'.length);
+      // Keys are generated server-side; reject anything else before it reaches
+      // R2 (traversal, alternate extensions, encoded separators, etc.).
+      if (!/^part_[a-zA-Z0-9_-]+\.(jpg|png|webp)$/.test(key)) {
+        return corsResponse({ error: 'Invalid photo key' }, 400, corsHeaders);
+      }
       const object = await env.PHOTOS.get(key);
       if (!object) return new Response('Photo Not Found', { status: 404, headers: corsHeaders });
       
       const headers = new Headers();
       object.writeHttpMetadata(headers);
+      headers.set('Vary', 'Origin');
       if (corsHeaders['Access-Control-Allow-Origin']) {
         headers.set('Access-Control-Allow-Origin', corsHeaders['Access-Control-Allow-Origin']);
       }
@@ -697,7 +834,7 @@ export default {
         }
 
         const ext = detected === 'image/jpeg' ? '.jpg' : detected === 'image/png' ? '.png' : '.webp';
-        const key = `part_${Date.now()}${ext}`;
+        const key = `part_${Date.now()}_${crypto.randomUUID().slice(0, 8)}${ext}`;
         await env.PHOTOS.put(key, buf, {
           httpMetadata: { contentType: detected }
         });
@@ -757,9 +894,42 @@ export default {
         if (!name || typeof name !== 'string' || name.trim() === '') {
           return corsResponse({ error: 'Part Name is required' }, 400, corsHeaders);
         }
+        if (name.length > 200) {
+          return corsResponse({ error: 'Part Name cannot exceed 200 characters' }, 400, corsHeaders);
+        }
         if (!sku || typeof sku !== 'string' || sku.trim() === '') {
           return corsResponse({ error: 'SKU is required' }, 400, corsHeaders);
         }
+        if (sku.length > 100) {
+          return corsResponse({ error: 'SKU cannot exceed 100 characters' }, 400, corsHeaders);
+        }
+
+        // Optional text fields: reject non-strings and enforce column-sized caps
+        // before anything reaches Stripe or D1.
+        const optionalStringLimits = { upc: 100, description: 2000, image_url: 500 };
+        for (const [field, limit] of Object.entries(optionalStringLimits)) {
+          const value = part[field];
+          if (value != null && typeof value !== 'string') {
+            return corsResponse({ error: `${field} must be a string` }, 400, corsHeaders);
+          }
+          if (typeof value === 'string' && value.length > limit) {
+            return corsResponse({ error: `${field} cannot exceed ${limit} characters` }, 400, corsHeaders);
+          }
+        }
+
+        const trimmedImageUrl = typeof image_url === 'string' ? image_url.trim() : '';
+        if (trimmedImageUrl) {
+          let parsedImageUrl;
+          try {
+            parsedImageUrl = new URL(trimmedImageUrl);
+          } catch {
+            return corsResponse({ error: 'Invalid image URL' }, 400, corsHeaders);
+          }
+          if (parsedImageUrl.protocol !== 'https:' && parsedImageUrl.protocol !== 'http:') {
+            return corsResponse({ error: 'Image URL must use http or https' }, 400, corsHeaders);
+          }
+        }
+
         const numPrice = parseFloat(price);
         if (isNaN(numPrice) || numPrice < 0) {
           return corsResponse({ error: 'Price must be a non-negative number' }, 400, corsHeaders);
@@ -783,7 +953,7 @@ export default {
               currency: 'usd',
               unit_amount: Math.round(numPrice * 100),
             },
-            images: image_url ? [image_url] : [],
+            images: trimmedImageUrl ? [trimmedImageUrl] : [],
             metadata: { sku, upc }
           });
           stripeProductId = product.id;
@@ -791,7 +961,7 @@ export default {
           await stripe.products.update(stripeProductId, {
             name: name,
             description: description || `SKU: ${sku}`,
-            images: image_url ? [image_url] : [],
+            images: trimmedImageUrl ? [trimmedImageUrl] : [],
             metadata: { sku, upc }
           });
           // Only create new price in Stripe if the price actually changed
@@ -831,7 +1001,7 @@ export default {
           numReorderPoint, 
           numPrice, 
           stripeProductId, 
-          image_url || ''
+          trimmedImageUrl
         ).run();
 
         return corsResponse({ success: true, stripeProductId }, 200, corsHeaders);
@@ -843,6 +1013,13 @@ export default {
     // --- ROUTE: POST /api/estimate (Delivery Estimate - Public) ---
     if (url.pathname === '/api/estimate' && request.method === 'POST') {
       try {
+        const body = await request.json();
+        // Validate before any ORS call (and before the ORS-key check) so bad
+        // coordinates/addresses are always a 400, never an upstream 502.
+        const inputCheck = validateEstimateInput(body || {});
+        if (!inputCheck.ok) {
+          return corsResponse({ error: inputCheck.error }, 400, corsHeaders);
+        }
         const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
         if (!checkRateLimit(`estimate:${clientIp}`)) {
           return corsResponse({ error: 'Too many requests. Please try again later.' }, 429, corsHeaders);
@@ -850,11 +1027,13 @@ export default {
         if (!env.ORS_API_KEY) {
           return corsResponse({ error: 'Estimate unavailable' }, 503, corsHeaders);
         }
-        const body = await request.json();
         const { lat, lng, address } = body;
         const result = await buildEstimate(env, { lat, lng, address });
         return corsResponse(result, 200, corsHeaders);
       } catch (e) {
+        if (e?.status === 400) {
+          return corsResponse({ error: e.message }, 400, corsHeaders);
+        }
         return routeError(e, 'Could not calculate estimate', corsHeaders, 502);
       }
     }
@@ -884,6 +1063,36 @@ export default {
           name, email, phone, equipment, issue, pickup_required,
           delivery_address, delivery_lat, delivery_lng, estimate, distance_miles
         } = data;
+
+        // The hidden estimate/distance fields are attacker-controlled. Prefer a
+        // server-side ORS calculation when pickup is requested and a location is
+        // available; otherwise keep only validated numbers and label them as
+        // client-estimated in Matt's email.
+        const clientLat = hasNumericValue(delivery_lat) ? toFiniteNumber(delivery_lat) : null;
+        const clientLng = hasNumericValue(delivery_lng) ? toFiniteNumber(delivery_lng) : null;
+        const hasClientCoords = clientLat !== null && clientLng !== null;
+        const trimmedDeliveryAddress = typeof delivery_address === 'string' ? delivery_address.trim() : '';
+        let calculatedDelivery = null;
+        if (pickup_required === 'Yes' && env.ORS_API_KEY && (hasClientCoords || trimmedDeliveryAddress)) {
+          try {
+            calculatedDelivery = await buildEstimate(env, {
+              lat: hasClientCoords ? clientLat : undefined,
+              lng: hasClientCoords ? clientLng : undefined,
+              address: trimmedDeliveryAddress || undefined
+            });
+          } catch (e) {
+            console.error('Server-side delivery estimate failed; falling back to validated client values:', e.message);
+          }
+        }
+
+        const deliveryDistanceMiles = calculatedDelivery
+          ? calculatedDelivery.oneWayMiles
+          : (hasNumericValue(distance_miles) ? toFiniteNumber(distance_miles) : null);
+        const deliveryFee = calculatedDelivery
+          ? calculatedDelivery.estimate
+          : (hasNumericValue(estimate) ? toFiniteNumber(estimate) : null);
+        const deliveryAddressForEmail = calculatedDelivery?.deliveryAddress || trimmedDeliveryAddress;
+        const deliveryValuesAreServer = Boolean(calculatedDelivery);
 
         // 1. STRIPE CUSTOMER LOGIC
         const stripeCustomers = await stripe.customers.list({ email: email, limit: 1 });
@@ -949,19 +1158,23 @@ export default {
               ? `<a href="https://squareup.com/dashboard/appointments/calendar/book?customer_id=${squareCustomerId}" style="background: #006aff; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem;">Schedule (Square)</a>`
               : `<span style="color: #666; font-size: 0.8rem;">(Square Sync Disabled)</span>`;
 
-            const latNum = Number(delivery_lat);
-            const lngNum = Number(delivery_lng);
-            const hasValidCoords = Number.isFinite(latNum) && Number.isFinite(lngNum);
-            const mapLink = hasValidCoords
-              ? `https://www.openstreetmap.org/?mlat=${latNum}&mlon=${lngNum}#map=16/${latNum}/${lngNum}`
-              : '';
+            const mapLink = calculatedDelivery?.mapLink
+              || (hasClientCoords
+                ? `https://www.openstreetmap.org/?mlat=${encodeURIComponent(clientLat)}&mlon=${encodeURIComponent(clientLng)}#map=16/${encodeURIComponent(clientLat)}/${encodeURIComponent(clientLng)}`
+                : '');
+            const distanceText = deliveryDistanceMiles != null
+              ? `${deliveryDistanceMiles} mi (${deliveryValuesAreServer ? 'server-calculated' : 'client-estimated'})`
+              : 'N/A';
+            const feeText = deliveryFee != null
+              ? `$${deliveryFee} (${deliveryValuesAreServer ? 'server-calculated' : 'client-estimated'})`
+              : 'Call to confirm';
             const deliveryBlock = (pickup_required === 'Yes')
               ? `<div style="margin-top: 15px; padding: 12px; background: #f6f9f7; border-radius: 8px;">
                    <p style="margin: 0 0 6px;"><strong>🚚 Delivery Requested</strong></p>
-                   <p style="margin: 4px 0;"><strong>Address:</strong> ${escapeHtml(delivery_address || 'Not provided')}</p>
-                   <p style="margin: 4px 0;"><strong>Distance (one-way):</strong> ${escapeHtml(distance_miles != null && distance_miles !== '' ? distance_miles + ' mi' : 'N/A')}</p>
-                   <p style="margin: 4px 0;"><strong>Estimated Fee:</strong> ${escapeHtml(estimate != null && estimate !== '' ? '$' + estimate : 'Call to confirm')}</p>
-                   ${mapLink ? `<p style="margin: 4px 0;"><a href="${mapLink}">📍 View pickup location</a></p>` : ''}
+                   <p style="margin: 4px 0;"><strong>Address:</strong> ${escapeHtml(deliveryAddressForEmail || 'Not provided')}</p>
+                   <p style="margin: 4px 0;"><strong>Distance (one-way):</strong> ${escapeHtml(distanceText)}</p>
+                   <p style="margin: 4px 0;"><strong>Estimated Fee:</strong> ${escapeHtml(feeText)}</p>
+                   ${mapLink ? `<p style="margin: 4px 0;"><a href="${escapeHtml(mapLink)}">📍 View pickup location</a></p>` : ''}
                  </div>`
               : '';
 
@@ -1089,8 +1302,13 @@ export default {
 
       // 2. Check Inventory Dashboard
       try {
-        const res = await fetch('https://inventory.petersonsmallenginerepair.com');
-        if (res.ok) {
+        // Cloudflare Access answers unauthenticated requests with a 302 to the
+        // Access login. That is healthy (the origin is reachable), whereas an
+        // origin 5xx is a real failure — don't conflate the two.
+        const res = await fetch('https://inventory.petersonsmallenginerepair.com', { redirect: 'manual' });
+        if (res.status === 302) {
+          report.push('✅ Inventory Dashboard is UP (Cloudflare Access protected — 302 redirect)');
+        } else if (res.ok) {
           report.push('✅ Inventory Dashboard (inventory.petersonsmallenginerepair.com) is UP');
         } else {
           report.push(`❌ Inventory Dashboard is DOWN (Status: ${res.status})`);
@@ -1109,6 +1327,20 @@ export default {
         } else {
           report.push(`❌ Database query returned no results`);
           allPassed = false;
+        }
+
+        // Best-effort retention pruning: these tables grow forever otherwise.
+        // Run each statement independently so one missing table (e.g. before the
+        // first lead) cannot block the other deletion.
+        for (const cleanupSql of [
+          "DELETE FROM lead_autorespond WHERE day < date('now', '-7 days')",
+          "DELETE FROM processed_stripe_events WHERE created_at < datetime('now', '-30 days')",
+        ]) {
+          try {
+            await env.DB.prepare(cleanupSql).run();
+          } catch (cleanupError) {
+            console.error('Retention cleanup failed:', cleanupError.message);
+          }
         }
       } catch (e) {
         report.push(`❌ Database check failed: ${e.message}`);
