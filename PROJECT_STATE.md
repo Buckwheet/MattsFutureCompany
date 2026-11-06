@@ -45,6 +45,6 @@ Gate: `npm run check` → ESLint clean (backend, site, parts-manager, tools) + *
 - `STATUS.md`
 
 ## Next actions
-- [ ] Commit Phase 3 changes to `fix/round-4-security-hardening` and push to origin.
-- [ ] User review and PR creation against `main`.
+- [x] Create Pull Request #19 (`fix(security): Round 4 security scan remediation (Phases 1-3)`) on GitHub.
+- [ ] Review and merge PR #19 to `main` (triggers production deployment via hardened CI).
 - [ ] (Optional) Phase 4 operator cleanup of deprecated keys in local `.env`.
