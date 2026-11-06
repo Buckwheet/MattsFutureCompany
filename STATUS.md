@@ -3,7 +3,7 @@
 **Single source of truth for project state.** Process and rules live in `PROCEDURE.md`;
 owner-facing operating instructions live in `MATTS_OPS_MANUAL.md`.
 
-Last updated: **2026-11-05** (round 4 phases 1–2 complete on `fix/round-4-security-hardening`; not merged)
+Last updated: **2026-11-05** (round 4 phases 1–3 complete on `fix/round-4-security-hardening`; not merged)
 
 ---
 
@@ -256,9 +256,9 @@ inventory against sales periodically; the deduction path is the one to suspect i
 > merge `d6d0af1`, plus a docs commit `e9c47e4`. Round 3.1 (the UI verification harness,
 > `npm run verify:ui` + `tools/`) is merged too, via PR #18.
 >
-> **Round 4 is in progress on `fix/round-4-security-hardening`.** Phases 1–2 are complete and the
-> gate is green (`npm run check` → 103/103 tests); Phase 3 (CI/header hardening) and Phase 4
-> (operator-confirmed `.env` cleanup) remain. See `PROJECT_STATE.md` for the Phase 2 file/test map.
+> **Round 4 is in progress on `fix/round-4-security-hardening`.** Phases 1–3 are complete and the
+> gate is green (`npm run check` → 103/103 tests; `verify-ui` → all passed); only Phase 4
+> (operator-confirmed `.env` cleanup) remains optional. See `PROJECT_STATE.md` for the full file/test map.
 >
 > Pick up the open items in §4; the Stripe webhook end-to-end test is the most valuable.
 >
