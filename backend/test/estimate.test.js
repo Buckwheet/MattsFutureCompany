@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { calculateFee, matchServiceArea, SERVICE_AREA_CITIES, buildEstimate, buildCustomerDeliveryBlock } from '../index.js';
+import {
+  calculateFee, matchServiceArea, SERVICE_AREA_CITIES, buildEstimate,
+  buildCustomerDeliveryBlock, validateEstimateInput
+} from '../index.js';
+import worker from '../index.js';
 
 describe('calculateFee', () => {
   it('charges $1.50/mi round trip at 3 mi one-way', () => {
@@ -136,5 +140,81 @@ describe('buildCustomerDeliveryBlock', () => {
     const html = buildCustomerDeliveryBlock('Yes', '<script>x</script>');
     expect(html).toContain('&lt;script&gt;');
     expect(html).not.toContain('<script>x</script>');
+  });
+});
+
+describe('validateEstimateInput', () => {
+  it('accepts in-range coordinates and a normal address', () => {
+    expect(validateEstimateInput({ lat: 45.16, lng: -93.23 }).ok).toBe(true);
+    expect(validateEstimateInput({ lat: '45.16', lng: '-93.23' }).ok).toBe(true);
+    expect(validateEstimateInput({ address: 'Blaine, MN' }).ok).toBe(true);
+    expect(validateEstimateInput({}).ok).toBe(true);
+  });
+
+  it('rejects out-of-range coordinates', () => {
+    expect(validateEstimateInput({ lat: 999, lng: -500 }).ok).toBe(false);
+    expect(validateEstimateInput({ lat: 90.0001, lng: 0 }).ok).toBe(false);
+    expect(validateEstimateInput({ lat: 0, lng: -180.0001 }).ok).toBe(false);
+    expect(validateEstimateInput({ lat: 45, lng: undefined }).ok).toBe(false);
+  });
+
+  it('rejects non-numeric and injection-shaped coordinate strings', () => {
+    expect(validateEstimateInput({ lat: '45.1&evil=1', lng: -93.2 }).ok).toBe(false);
+    expect(validateEstimateInput({ lat: 45.1, lng: '-93.2&point.lat=1' }).ok).toBe(false);
+    expect(validateEstimateInput({ lat: '', lng: '' }).ok).toBe(false);
+    expect(validateEstimateInput({ lat: NaN, lng: 0 }).ok).toBe(false);
+  });
+
+  it('rejects missing, empty, non-string, and oversized addresses', () => {
+    expect(validateEstimateInput({ address: '' }).ok).toBe(false);
+    expect(validateEstimateInput({ address: '   ' }).ok).toBe(false);
+    expect(validateEstimateInput({ address: 123 }).ok).toBe(false);
+    expect(validateEstimateInput({ address: 'a'.repeat(501) }).ok).toBe(false);
+    expect(validateEstimateInput({ address: 'a'.repeat(500) }).ok).toBe(true);
+  });
+
+  it('throws a 400-tagged error from buildEstimate for invalid input', async () => {
+    await expect(buildEstimate({ ORS_API_KEY: 'k' }, { lat: 999, lng: 0 }))
+      .rejects.toMatchObject({ status: 400 });
+  });
+
+  it('encodes destination coordinates in reverse-geocode and map links', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ distances: [[1609.344]] }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ features: [] }) });
+
+    const r = await buildEstimate({ ORS_API_KEY: 'k' }, { lat: '45.16', lng: '-93.23' });
+    expect(global.fetch.mock.calls[1][0]).toContain('point.lat=45.16');
+    expect(global.fetch.mock.calls[1][0]).toContain('point.lon=-93.23');
+    expect(r.mapLink).toContain('mlat=45.16');
+    expect(r.mapLink).toContain('mlon=-93.23');
+  });
+});
+
+describe('POST /api/estimate input validation', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  const estimateRequest = (payload, ip = '10.0.0.1') => new Request('https://example.com/api/estimate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'cf-connecting-ip': ip },
+    body: JSON.stringify(payload),
+  });
+
+  const env = { STRIPE_SECRET_KEY: 'sk_test_x', ORS_API_KEY: 'ors_test' };
+
+  it.each([
+    ['out-of-range lat', { lat: 999, lng: -93.2 }],
+    ['out-of-range lng', { lat: 45.1, lng: -500 }],
+    ['non-numeric lat', { lat: '45.1&evil=1', lng: -93.2 }],
+    ['oversized address', { address: 'a'.repeat(501) }],
+    ['no location', {}],
+  ])('returns 400 before calling ORS for %s', async (_label, payload) => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await worker.fetch(estimateRequest(payload), env);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

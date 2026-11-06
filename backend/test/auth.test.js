@@ -18,12 +18,13 @@ function makeToken({
   exp = Math.floor(Date.now() / 1000) + 3600,
   nbf = Math.floor(Date.now() / 1000) - 60,
   kid = 'test-kid',
+  omitKid = false,
   tampered = false,
   // Declared in the header only — the signature is always a real RS256 sig, so
   // this models a token that lies about its algorithm.
   alg = 'RS256',
 } = {}) {
-  const header = { alg, typ: 'JWT', kid };
+  const header = { alg, typ: 'JWT', ...(omitKid ? {} : { kid }) };
   const payload = { iss: `https://${AUTH_DOMAIN}`, aud, email, exp, nbf, iat: Math.floor(Date.now() / 1000) - 120 };
   const h = b64url(header);
   const p = b64url(payload);
@@ -73,6 +74,37 @@ describe('Cloudflare Access JWT verification (GET /api/parts)', () => {
 
   it('rejects a token for the wrong audience', async () => {
     const res = await worker.fetch(partsRequest(makeToken({ aud: 'other-app' })), authEnv());
+    expect(res.status).toBe(401);
+  });
+
+  // Cloudflare Access normally emits `aud` as an array, not a bare string.
+  it('accepts a valid token whose aud is an array containing the expected audience', async () => {
+    const res = await worker.fetch(partsRequest(makeToken({ aud: [AUD] })), authEnv());
+    expect(res.status).toBe(200);
+  });
+
+  it('accepts the expected audience among multiple array entries', async () => {
+    const res = await worker.fetch(partsRequest(makeToken({ aud: ['other-app', AUD] })), authEnv());
+    expect(res.status).toBe(200);
+  });
+
+  it('rejects an array audience that does not include the expected audience', async () => {
+    const res = await worker.fetch(partsRequest(makeToken({ aud: ['wrong-aud'] })), authEnv());
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a token with no kid header', async () => {
+    const res = await worker.fetch(partsRequest(makeToken({ omitKid: true })), authEnv());
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a token with an empty kid header', async () => {
+    const res = await worker.fetch(partsRequest(makeToken({ kid: '' })), authEnv());
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a token whose kid is not a string', async () => {
+    const res = await worker.fetch(partsRequest(makeToken({ kid: 123 })), authEnv());
     expect(res.status).toBe(401);
   });
 

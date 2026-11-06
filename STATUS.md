@@ -3,7 +3,7 @@
 **Single source of truth for project state.** Process and rules live in `PROCEDURE.md`;
 owner-facing operating instructions live in `MATTS_OPS_MANUAL.md`.
 
-Last updated: **2026-09-10** (round 3 shipped and verified in production)
+Last updated: **2026-11-05** (round 4 phases 1–3 complete on `fix/round-4-security-hardening`; not merged)
 
 ---
 
@@ -23,13 +23,17 @@ OpenRouteService (geocoding + driving distance).
 
 ## 2. Deployed and working
 
-- Lead capture with Turnstile bot gate, email/length validation, per-IP rate buckets, Stripe + Square
-  customer sync, HTML-escaped notification + auto-response emails.
-- Delivery estimate: ORS geocode (metro-biased) → driving miles → tiered fee, with out-of-range handling.
+- Lead capture with Turnstile bot gate, email/length validation, bounded delivery fields, per-IP rate
+  buckets, Stripe + Square customer sync, server-recalculated delivery fees when ORS is available,
+  HTML-escaped notification + auto-response emails.
+- Delivery estimate: validated coordinates/addresses, ORS geocode (metro-biased) → driving miles →
+  tiered fee, with out-of-range handling and encoded map links.
 - Stripe webhook auto-deducts inventory on `checkout.session.completed` / `invoice.paid`.
-- Daily 08:00 UTC health-check cron → HTML report to Matt.
+- Daily 08:00 UTC health-check cron → HTML report to Matt, with 7-day/30-day retention pruning and
+  Cloudflare Access 302 recognized as healthy.
 - Seasonal hero carousel with client-side date gating, mobile auto-height layout.
-- Cloudflare Access JWT auth (RS256, iss/aud/email/exp/nbf, alg-pinned) on all admin routes.
+- Cloudflare Access JWT auth (RS256, iss/aud array/email/exp/nbf, kid required, alg-pinned) on all
+  admin routes.
 - Real 404s, `sitemap.xml`, one `<h1>`, WebP imagery, Open Graph cards.
 - CI on merge to `main` deploys Pages + Worker and pushes Worker secrets.
 
@@ -124,6 +128,26 @@ nothing to it — this measures the **DOM** instead.
 - **Emulation is a floor, not a ceiling.** It is faithful for layout bugs but *not* Safari-specific
   behaviour, and the hero uses `dvh`. It narrows the gap; it does not close it.
 
+### Round 4 — Phase 1 & 2 (branch `fix/round-4-security-hardening`, not yet merged)
+
+**Phase 1:** dependency upgrades across root, `parts-manager/`, and `backend/`; all audits report
+0 vulnerabilities and the Vite production build is clean.
+
+**Phase 2 backend hardening** (`backend/index.js`, plus `parts-manager/src/App.jsx`):
+
+| Finding | Fix |
+|---------|-----|
+| #4 estimate input | Exported `validateEstimateInput`; finite/in-range coordinates, 1–500 char addresses, encoded ORS reverse-geocode/map links; `/api/estimate` returns 400 before ORS. |
+| #3 lead money spoofing | `validateLeadInput` bounds pickup choice, coordinates, estimate, and distance. `POST /` recalculates via `buildEstimate` when ORS is configured and labels fallback values `client-estimated`. |
+| #5 Access JWT | Array `aud` claims accepted; `header.kid` must be a non-empty string; signature base64-padded before `atob()`. |
+| #6 R2/photos | GET-only photo route, strict `part_*.{jpg,png,webp}` key regex, always `Vary: Origin`, invalid keys rejected before R2; upload keys add an 8-char UUID suffix. |
+| #8 rate-limit map | Hard cap 5000 keys: evict expired entries first, then the oldest key. |
+| #11 cron retention | Best-effort deletes for `lead_autorespond` (7 days) and `processed_stripe_events` (30 days); Access 302 is healthy, origin 5xx still alerts. |
+| #9 parts/UPC | Length caps on five fields, `http(s)`-only `image_url`, encoded UPC lookup in `parts-manager`. |
+
+**Tests:** 42 added (61 → **103**), all passing. Proof-it-bites: reverting only `backend/index.js`
+produced 34 failures; restoring it restored the exact SHA-256 and the gate went green.
+
 ---
 
 ## 4. Verification — done, and what is still open
@@ -172,8 +196,9 @@ inventory against sales periodically; the deduction path is the one to suspect i
 
 ## 5. Known trade-offs and hazards
 
-- **Rate limiter is in-memory per isolate** — best effort, not a global limit. Real protection is a
-  Cloudflare Rate Limiting rule. Never let this be the only gate on a money path.
+- **Rate limiter is in-memory per isolate** — best effort, not a global limit. The map is now hard
+  capped at 5000 keys, but real protection is a Cloudflare Rate Limiting rule. Never let this be the
+  only gate on a money path.
 - **Turnstile fails OPEN when `TURNSTILE_SECRET_KEY` is unset.** Keeps the site working during
   rollout; keep the warning log.
 - **`ENVIRONMENT=dev` bypasses Access auth** for local dev only. Never set it in production.
@@ -189,7 +214,7 @@ inventory against sales periodically; the deduction path is the one to suspect i
   `/images/hero.png` still returned 200 (950 KB, `cf-cache-status: REVALIDATED`) while
   `?cb=1` returned 404. Harmless — nothing references it — but it means a deleted asset can linger.
 - **Email recipient identity is hardcoded** (`mattssmallenginerep@gmail.com`, `authDomain`).
-- **Photo reads (`/api/photos/*`) are public** with timestamp-based keys; acceptable for product photos.
+- **Photo reads (`/api/photos/*`) are public** with timestamp+random keys; acceptable for product photos.
 - **`parts-manager/` is not deployed by CI** — manual deploy.
 - **`docs/superpowers/` remains gitignored** — treated as internal design material.
 - **The homepage testimonials are left as-is by decision (2026-09-10).** Do not raise this again or
@@ -229,7 +254,11 @@ inventory against sales periodically; the deduction path is the one to suspect i
 >
 > Round 3 (backend security + site SEO/perf) is **merged to `main` and verified live** — PR #17,
 > merge `d6d0af1`, plus a docs commit `e9c47e4`. Round 3.1 (the UI verification harness,
-> `npm run verify:ui` + `tools/`) is merged too, via PR #18. **Nothing is pending in the tree.**
+> `npm run verify:ui` + `tools/`) is merged too, via PR #18.
+>
+> **Round 4 is in progress on `fix/round-4-security-hardening`.** Phases 1–3 are complete and the
+> gate is green (`npm run check` → 103/103 tests; `verify-ui` → all passed); only Phase 4
+> (operator-confirmed `.env` cleanup) remains optional. See `PROJECT_STATE.md` for the full file/test map.
 >
 > Pick up the open items in §4; the Stripe webhook end-to-end test is the most valuable.
 >

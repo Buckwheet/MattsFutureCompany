@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { validateLeadInput, sniffImageType, sanitizeHeader } from '../index.js';
+import {
+  validateLeadInput, sniffImageType, sanitizeHeader,
+  checkRateLimit, rateLimitMap, MAX_RATE_LIMIT_KEYS
+} from '../index.js';
 
 // Shared mutable event/line-item state for the mocked Stripe module.
 const { mockEvent, mockLineItems } = vi.hoisted(() => ({
@@ -122,6 +125,43 @@ describe('validateLeadInput', () => {
     expect(validateLeadInput({ ...validLead(), name: 'x'.repeat(101) }).ok).toBe(false);
     expect(validateLeadInput({ ...validLead(), delivery_address: 'x'.repeat(501) }).ok).toBe(false);
   });
+
+  it('accepts explicit pickup choices and empty optional delivery fields', () => {
+    expect(validateLeadInput({ ...validLead(), pickup_required: 'Yes' }).ok).toBe(true);
+    expect(validateLeadInput({ ...validLead(), pickup_required: 'No' }).ok).toBe(true);
+    expect(validateLeadInput({
+      ...validLead(), delivery_lat: '', delivery_lng: '', estimate: '', distance_miles: '',
+    }).ok).toBe(true);
+  });
+
+  it('rejects invalid pickup_required values', () => {
+    for (const pickup_required of ['Maybe', 'yes', '', 1, true]) {
+      expect(validateLeadInput({ ...validLead(), pickup_required }).ok).toBe(false);
+    }
+  });
+
+  it('rejects out-of-bounds and non-numeric delivery coordinates', () => {
+    expect(validateLeadInput({ ...validLead(), delivery_lat: 95, delivery_lng: -93 }).ok).toBe(false);
+    expect(validateLeadInput({ ...validLead(), delivery_lat: 45, delivery_lng: 181 }).ok).toBe(false);
+    expect(validateLeadInput({ ...validLead(), delivery_lat: '45.1&evil=1', delivery_lng: -93 }).ok).toBe(false);
+    expect(validateLeadInput({ ...validLead(), delivery_lat: 'not-a-number', delivery_lng: -93 }).ok).toBe(false);
+    expect(validateLeadInput({ ...validLead(), delivery_lat: 45, delivery_lng: '' }).ok).toBe(false);
+  });
+
+  it('accepts in-range coordinate strings', () => {
+    expect(validateLeadInput({
+      ...validLead(), delivery_lat: '45.16', delivery_lng: '-93.23',
+    }).ok).toBe(true);
+  });
+
+  it('rejects non-numeric, negative, or oversized estimate/distance values', () => {
+    expect(validateLeadInput({ ...validLead(), estimate: '0.00 FREE' }).ok).toBe(false);
+    expect(validateLeadInput({ ...validLead(), estimate: '12.50abc' }).ok).toBe(false);
+    expect(validateLeadInput({ ...validLead(), estimate: -1 }).ok).toBe(false);
+    expect(validateLeadInput({ ...validLead(), distance_miles: 'lots' }).ok).toBe(false);
+    expect(validateLeadInput({ ...validLead(), distance_miles: '1'.repeat(21) }).ok).toBe(false);
+    expect(validateLeadInput({ ...validLead(), estimate: 0, distance_miles: '0' }).ok).toBe(true);
+  });
 });
 
 describe('sanitizeHeader', () => {
@@ -240,6 +280,105 @@ describe('POST / (lead capture)', () => {
   });
 });
 
+describe('POST / delivery fee is recalculated server-side', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  function mockDeliveryFetch({ matrixOk = true, meters = 12875 } = {}) {
+    const sent = [];
+    const fetchMock = vi.fn(async (url, opts) => {
+      const href = String(url);
+      if (href.includes('/v2/matrix/driving-car')) {
+        return matrixOk
+          ? { ok: true, json: async () => ({ distances: [[meters]] }) }
+          : { ok: false, status: 500, json: async () => ({}) };
+      }
+      if (href.includes('/geocode/reverse')) {
+        return {
+          ok: true,
+          json: async () => ({ features: [{ properties: { locality: 'Blaine', label: '123 Main St, Blaine, MN' } }] }),
+        };
+      }
+      if (href.includes('api.resend.com')) {
+        sent.push(JSON.parse(opts.body));
+        return { ok: true, json: async () => ({}) };
+      }
+      return { ok: true, json: async () => ({ success: true }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return { sent, fetchMock };
+  }
+
+  function deliveryEnv(extra = {}) {
+    return {
+      STRIPE_SECRET_KEY: 'sk_test_x',
+      RESEND_API_KEY: 're_test',
+      DB: claimDb().db,
+      ...extra,
+    };
+  }
+
+  it('uses the ORS calculation instead of client-supplied fee/distance', async () => {
+    const { sent } = mockDeliveryFetch();
+    const payload = {
+      ...validLead(),
+      pickup_required: 'Yes',
+      delivery_address: '123 Main St, Blaine, MN',
+      delivery_lat: '45.16',
+      delivery_lng: '-93.23',
+      estimate: '0.01',
+      distance_miles: '999',
+    };
+
+    const res = await worker.fetch(leadRequest(payload, '11.0.0.1'), deliveryEnv({ ORS_API_KEY: 'ors_test' }));
+    expect(res.status).toBe(200);
+
+    const toMatt = sent.find(m => m.to === 'matt@petersonsmallenginerepair.com');
+    expect(toMatt.html).toContain('server-calculated');
+    expect(toMatt.html).toContain('$32');
+    expect(toMatt.html).not.toContain('$0.01');
+    expect(toMatt.html).not.toContain('999 mi');
+  });
+
+  it('labels validated client values as client-estimated when ORS is unavailable', async () => {
+    const { sent } = mockDeliveryFetch();
+    const payload = {
+      ...validLead(),
+      pickup_required: 'Yes',
+      delivery_lat: '45.16',
+      delivery_lng: '-93.23',
+      estimate: '12.50',
+      distance_miles: '7.5',
+    };
+
+    const res = await worker.fetch(leadRequest(payload, '11.0.0.2'), deliveryEnv());
+    expect(res.status).toBe(200);
+
+    const toMatt = sent.find(m => m.to === 'matt@petersonsmallenginerepair.com');
+    expect(toMatt.html).toContain('client-estimated');
+    expect(toMatt.html).toContain('$12.5');
+    expect(toMatt.html).toContain('7.5 mi');
+    expect(toMatt.html).not.toContain('server-calculated');
+  });
+
+  it('falls back to client-estimated values when ORS fails', async () => {
+    const { sent } = mockDeliveryFetch({ matrixOk: false });
+    const payload = {
+      ...validLead(),
+      pickup_required: 'Yes',
+      delivery_address: '123 Main St, Blaine, MN',
+      estimate: '12.50',
+      distance_miles: '7.5',
+    };
+
+    const res = await worker.fetch(leadRequest(payload, '11.0.0.3'), deliveryEnv({ ORS_API_KEY: 'ors_test' }));
+    expect(res.status).toBe(200);
+
+    const toMatt = sent.find(m => m.to === 'matt@petersonsmallenginerepair.com');
+    expect(toMatt.html).toContain('client-estimated');
+    expect(toMatt.html).toContain('$12.5');
+  });
+});
+
 describe('rate limiting', () => {
   it('keeps lead and estimate in separate buckets', async () => {
     const env = { STRIPE_SECRET_KEY: 'sk_test_x' }; // no ORS key: estimate returns 503 AFTER the rate-limit check
@@ -260,6 +399,31 @@ describe('rate limiting', () => {
       env
     );
     expect(estimate.status).toBe(503);
+  });
+});
+
+describe('rate limit map hard cap', () => {
+  beforeEach(() => rateLimitMap.clear());
+  afterEach(() => rateLimitMap.clear());
+
+  it('never grows beyond MAX_RATE_LIMIT_KEYS', () => {
+    for (let i = 0; i < MAX_RATE_LIMIT_KEYS + 25; i++) {
+      checkRateLimit(`cap-key-${i}`, 5, 60000);
+    }
+    expect(rateLimitMap.size).toBe(MAX_RATE_LIMIT_KEYS);
+  });
+
+  it('evicts expired entries before live ones when at capacity', () => {
+    rateLimitMap.set('expired-key', [Date.now() - 120000]);
+    for (let i = 0; i < MAX_RATE_LIMIT_KEYS - 1; i++) {
+      rateLimitMap.set(`live-key-${i}`, [Date.now()]);
+    }
+    expect(rateLimitMap.size).toBe(MAX_RATE_LIMIT_KEYS);
+
+    expect(checkRateLimit('fresh-key', 5, 60000)).toBe(true);
+    expect(rateLimitMap.has('expired-key')).toBe(false);
+    expect(rateLimitMap.has('fresh-key')).toBe(true);
+    expect(rateLimitMap.size).toBe(MAX_RATE_LIMIT_KEYS);
   });
 });
 
@@ -405,7 +569,7 @@ describe('POST /api/upload', () => {
     }), env);
     expect(res.status).toBe(200);
     expect(env.PHOTOS.put).toHaveBeenCalledWith(
-      expect.stringMatching(/^part_\d+\.jpg$/),
+      expect.stringMatching(/^part_\d+_[a-f0-9]{8}\.jpg$/),
       expect.any(ArrayBuffer), // request.arrayBuffer() copy, not the original Uint8Array
       { httpMetadata: { contentType: 'image/jpeg' } }
     );
@@ -421,5 +585,181 @@ describe('POST /api/upload', () => {
     const res = await worker.fetch(new Request('https://example.com/api/photos/part_1.jpg'), env);
     expect(res.status).toBe(200);
     expect(res.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('always sends Vary: Origin on photo responses', async () => {
+    const env = uploadEnv();
+    env.PHOTOS.get.mockResolvedValue({
+      writeHttpMetadata: vi.fn(),
+      httpEtag: '"abc"',
+      body: new Uint8Array([1, 2, 3]),
+    });
+    const res = await worker.fetch(new Request('https://example.com/api/photos/part_1.jpg', {
+      headers: { origin: 'https://petersonsmallenginerepair.com' },
+    }), env);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Vary')).toBe('Origin');
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://petersonsmallenginerepair.com');
+  });
+
+  it('rejects invalid and traversal-shaped photo keys without touching R2', async () => {
+    const invalidKeys = [
+      'other.txt',
+      'part_1.svg',
+      'part_.jpg',
+      'part_1.jpg%00',
+      '%2e%2e%2fsecret',
+      '../secret',
+      '../../secret',
+    ];
+
+    for (const key of invalidKeys) {
+      const env = uploadEnv();
+      const res = await worker.fetch(new Request(`https://example.com/api/photos/${key}`), env);
+      expect([400, 404]).toContain(res.status);
+      expect(env.PHOTOS.get).not.toHaveBeenCalled();
+    }
+  });
+});
+
+describe('POST /api/parts field and image URL validation', () => {
+  const basePart = {
+    name: 'Spark Plug', sku: 'SP-1', upc: '123456789012', description: 'Standard plug',
+    quantity: 2, reorder_point: 1, price: 5.99, image_url: 'https://example.com/part.jpg',
+  };
+
+  function partsRequest(part) {
+    return new Request('https://example.com/api/parts', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(part),
+    });
+  }
+
+  function partsEnv(db) {
+    return { ENVIRONMENT: 'dev', STRIPE_SECRET_KEY: 'sk_test_x', DB: db };
+  }
+
+  function partsDb() {
+    const statements = [];
+    return {
+      statements,
+      prepare(sql) {
+        statements.push(sql);
+        return {
+          _args: [],
+          bind(...args) { this._args = args; return this; },
+          async run() { return { meta: { changes: 1 } }; },
+          async first() { return null; },
+        };
+      },
+    };
+  }
+
+  it.each([
+    ['over-length name', { name: 'a'.repeat(201) }],
+    ['over-length sku', { sku: 'a'.repeat(101) }],
+    ['over-length upc', { upc: 'a'.repeat(101) }],
+    ['over-length description', { description: 'a'.repeat(2001) }],
+    ['over-length image_url', { image_url: `https://example.com/${'a'.repeat(501)}` }],
+    ['javascript: image_url', { image_url: 'javascript:alert(1)' }],
+    ['ftp: image_url', { image_url: 'ftp://example.com/part.jpg' }],
+    ['malformed image_url', { image_url: 'not a url' }],
+    ['non-string upc', { upc: 123 }],
+  ])('rejects %s before Stripe or D1', async (_label, override) => {
+    const prepare = vi.fn();
+    const res = await worker.fetch(partsRequest({ ...basePart, ...override }), partsEnv({ prepare }));
+    expect(res.status).toBe(400);
+    expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it('accepts a normal http(s) image URL and stores the part', async () => {
+    const db = partsDb();
+    const res = await worker.fetch(partsRequest(basePart), partsEnv(db));
+    expect(res.status).toBe(200);
+    expect((await res.json()).success).toBe(true);
+    expect(db.statements.some(sql => sql.includes('INSERT INTO parts'))).toBe(true);
+  });
+});
+
+describe('scheduled health check and retention cleanup', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  function scheduledDb() {
+    const statements = [];
+    return {
+      statements,
+      prepare(sql) {
+        statements.push(sql);
+        return {
+          async all() {
+            return sql.includes('COUNT(*)') ? { results: [{ count: 3 }] } : { results: [] };
+          },
+          async run() { return { meta: { changes: 1 } }; },
+          bind() { return this; },
+        };
+      },
+    };
+  }
+
+  async function runScheduled(env) {
+    let pending;
+    await worker.scheduled({}, env, { waitUntil: (promise) => { pending = promise; } });
+    if (pending) await pending;
+  }
+
+  function mockHealthFetch(inventoryResponse) {
+    const sent = [];
+    const fetchMock = vi.fn(async (url, opts) => {
+      const href = String(url);
+      if (href === 'https://petersonsmallenginerepair.com') {
+        return { ok: true, status: 200, json: async () => ({}) };
+      }
+      if (href === 'https://inventory.petersonsmallenginerepair.com') {
+        return inventoryResponse;
+      }
+      if (href.includes('api.resend.com')) {
+        sent.push(JSON.parse(opts.body));
+        return { ok: true, json: async () => ({}) };
+      }
+      return { ok: true, status: 200, json: async () => ({}) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return { sent, fetchMock };
+  }
+
+  const baseEnv = (db) => ({ DB: db, STRIPE_SECRET_KEY: 'sk_test_x', RESEND_API_KEY: 're_test' });
+
+  it('prunes old autorespond and processed Stripe rows during the DB check', async () => {
+    const { fetchMock } = mockHealthFetch({ ok: true, status: 200 });
+    const db = scheduledDb();
+
+    await runScheduled(baseEnv(db));
+
+    const sql = db.statements.join('\n');
+    expect(sql).toContain("DELETE FROM lead_autorespond WHERE day < date('now', '-7 days')");
+    expect(sql).toContain("DELETE FROM processed_stripe_events WHERE created_at < datetime('now', '-30 days')");
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://inventory.petersonsmallenginerepair.com',
+      expect.objectContaining({ redirect: 'manual' })
+    );
+  });
+
+  it('treats a Cloudflare Access 302 as healthy, not as an origin failure', async () => {
+    const { sent } = mockHealthFetch({ ok: false, status: 302 });
+    await runScheduled(baseEnv(scheduledDb()));
+
+    const report = sent.find(m => m.to === 'mattssmallenginerep@gmail.com');
+    expect(report.subject).toBe('Health Report: OK');
+    expect(report.html).toContain('Cloudflare Access');
+  });
+
+  it('still reports an origin 5xx as an alert', async () => {
+    const { sent } = mockHealthFetch({ ok: false, status: 503 });
+    await runScheduled(baseEnv(scheduledDb()));
+
+    const report = sent.find(m => m.to === 'mattssmallenginerep@gmail.com');
+    expect(report.subject).toBe('Health Report: ALERT');
+    expect(report.html).toContain('Inventory Dashboard is DOWN');
   });
 });
