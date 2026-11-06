@@ -3,7 +3,7 @@
 **Single source of truth for project state.** Process and rules live in `PROCEDURE.md`;
 owner-facing operating instructions live in `MATTS_OPS_MANUAL.md`.
 
-Last updated: **2026-11-05** (round 4 phases 1–3 complete on `fix/round-4-security-hardening`; not merged)
+Last updated: **2026-11-05** (round 4 shipped & verified in production: PR #19, merge commit 34e925b)
 
 ---
 
@@ -36,6 +36,18 @@ OpenRouteService (geocoding + driving distance).
   admin routes.
 - Real 404s, `sitemap.xml`, one `<h1>`, WebP imagery, Open Graph cards.
 - CI on merge to `main` deploys Pages + Worker and pushes Worker secrets.
+
+---
+
+## 3.1 Round 4 — SHIPPED AND VERIFIED IN PRODUCTION (2026-11-05)
+
+PR **#19** → merge commit **`34e925b`** on `main` → deploy run **`42142260533`** (51s, all green).
+Three feature commits: `96c58a8` (Phase 1 dependencies), `2930281` (Phase 2 backend/auth/R2), `8abfdad` (Phase 3 CI/headers).
+
+- **Dependency Security:** 0 vulnerabilities across root, `backend/`, and `parts-manager/`.
+- **Backend Input & Auth Hardening:** `/api/estimate` bounded coords & address, lead anti-spoofing ORS recalculation, Cloudflare Access array `aud` claims & `kid` validation, GET-only `/api/photos` with `Vary: Origin`, random UUID upload keys, 5000-key rate limit cap, D1 retention pruning (7d leads, 30d webhooks), 302 Access redirect recognition in cron health check.
+- **CI/CD & Headers:** Least-privilege GITHUB_TOKEN (`permissions: contents: read`), immutable commit SHA pinning on `actions/checkout` and `wrangler-action`, secret injection guards (`if [ -n ... ] printf '%s'`), `Permissions-Policy`, and strengthened CSP.
+- **Verification:** 103/103 Vitest tests pass; `verify-ui` passed 32/32 checks live against production.
 
 ---
 
